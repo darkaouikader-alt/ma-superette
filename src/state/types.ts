@@ -137,7 +137,7 @@ export interface GameState {
   finalDone: boolean;
   tutorialOff: boolean;
   /** Roue de la fortune : dernier tour (horodatage réel) et bonus temporaires en cours. */
-  wheel?: { lastSpin: number; boosts: { kind: 'traffic' | 'xp' | 'supplier' | 'price' | 'express' | 'rep'; value: number; until: number }[] };
+  wheel?: { lastSpin: number; boosts: { kind: 'traffic' | 'xp' | 'supplier' | 'price' | 'express' | 'rep'; value: number; untilDay: number }[] };
   /** Succursales achetées. */
   branches?: string[];
   /** Acheteur automatique (amélioration « Responsable des achats »). */

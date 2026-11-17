@@ -1,4 +1,6 @@
-// Roue de la fortune : un tour par heure (temps réel), récompenses instantanées ou temporaires.
+// Roue de la fortune : un tour par heure (temps réel), récompenses instantanées ou bonus
+// temporaires. Les bonus durent un nombre de journées de jeu (pas des heures réelles) :
+// on ne peut pas enchaîner des dizaines de journées boostées pendant qu'ils sont actifs.
 export type BoostKind = 'traffic' | 'xp' | 'supplier' | 'price' | 'express' | 'rep';
 
 export interface WheelPrize {
@@ -11,8 +13,8 @@ export interface WheelPrize {
   weight: number;
   /** Récompense instantanée : argent selon le niveau du magasin. */
   cash?: (level: number) => number;
-  /** Bonus temporaire : type, valeur et durée en heures réelles. */
-  boost?: { kind: BoostKind; value: number; hours: number };
+  /** Bonus temporaire : type, valeur et durée en journées de jeu (la journée en cours comprise). */
+  boost?: { kind: BoostKind; value: number; days: number };
   desc: string;
 }
 
@@ -22,17 +24,17 @@ export const WHEEL_PRIZES: WheelPrize[] = [
   { id: 'cash', label: 'Petite cagnotte', short: 'Cagnotte', emoji: '💶', color: '#2fa36b', weight: 22, cash: smallPot,
     desc: 'Un peu d’argent versé tout de suite dans ta caisse.' },
   { id: 'traffic', label: 'Affluence +15 %', short: 'Affluence', emoji: '🧑‍🤝‍🧑', color: '#4dabf7', weight: 16,
-    boost: { kind: 'traffic', value: 0.15, hours: 3 }, desc: '15 % de clients en plus pendant 3 heures.' },
+    boost: { kind: 'traffic', value: 0.15, days: 2 }, desc: '15 % de clients en plus pendant 2 journées.' },
   { id: 'xp', label: 'Expérience ×1,5', short: 'XP ×1,5', emoji: '⭐', color: '#8b5cf6', weight: 14,
-    boost: { kind: 'xp', value: 0.5, hours: 2 }, desc: 'L’expérience gagnée en fin de journée est multipliée par 1,5 pendant 2 heures.' },
+    boost: { kind: 'xp', value: 0.5, days: 2 }, desc: 'L’expérience gagnée en fin de journée est multipliée par 1,5 pendant 2 journées.' },
   { id: 'supplier', label: 'Fournisseurs −10 %', short: 'Achats −10%', emoji: '🏷️', color: '#ff9f43', weight: 14,
-    boost: { kind: 'supplier', value: 0.1, hours: 4 }, desc: 'Tous les prix d’achat baissent de 10 % pendant 4 heures.' },
+    boost: { kind: 'supplier', value: 0.1, days: 1 }, desc: 'Tous les prix d’achat baissent de 10 % pendant 1 journée.' },
   { id: 'price', label: 'Clients généreux', short: 'Prix +8%', emoji: '😊', color: '#ef6f6c', weight: 12,
-    boost: { kind: 'price', value: 0.08, hours: 3 }, desc: 'Les clients acceptent des prix 8 % plus élevés sans bouder, pendant 3 heures.' },
+    boost: { kind: 'price', value: 0.08, days: 2 }, desc: 'Les clients acceptent des prix 8 % plus élevés sans bouder, pendant 2 journées.' },
   { id: 'express', label: 'Livraison accélérée', short: 'Livr. rapide', emoji: '🚀', color: '#20c997', weight: 10,
-    boost: { kind: 'express', value: 1, hours: 12 }, desc: 'Les commandes arrivent un jour plus tôt (minimum le lendemain) pendant 12 heures.' },
+    boost: { kind: 'express', value: 1, days: 2 }, desc: 'Les commandes passées arrivent un jour plus tôt (minimum le lendemain) pendant 2 journées.' },
   { id: 'rep', label: 'Bouche-à-oreille', short: '+1 rép/jour', emoji: '🌟', color: '#e8a400', weight: 8,
-    boost: { kind: 'rep', value: 1, hours: 48 }, desc: '+1 point de réputation à chaque fin de journée, pendant 2 jours.' },
+    boost: { kind: 'rep', value: 1, days: 3 }, desc: '+1 point de réputation à chaque fin de journée, pendant 3 journées.' },
   { id: 'jackpot', label: 'JACKPOT', short: 'Jackpot !', emoji: '💎', color: '#d6336c', weight: 4, cash: (level) => smallPot(level) * 6,
     desc: 'La grosse cagnotte, versée tout de suite !' },
 ];

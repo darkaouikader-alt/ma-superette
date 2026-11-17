@@ -1,8 +1,9 @@
-// Roue de la fortune : tirage, bonus temporaires (en temps réel) et leurs effets.
+// Roue de la fortune : tirage, bonus temporaires (en journées de jeu) et leurs effets.
+// Seul le délai entre deux tours est en temps réel.
 import { WHEEL_COOLDOWN_MS, WHEEL_PRIZES, type BoostKind, type WheelPrize } from '../data/wheel';
 import type { GameState } from '../state/types';
 
-export interface WheelState { lastSpin: number; boosts: { kind: BoostKind; value: number; until: number }[] }
+export interface WheelState { lastSpin: number; boosts: { kind: BoostKind; value: number; untilDay: number }[] }
 
 export function wheelState(state: GameState): WheelState {
   state.wheel ??= { lastSpin: 0, boosts: [] };
@@ -17,14 +18,21 @@ export function spinCooldown(state: GameState, now = Date.now()): number {
 
 export const canSpin = (state: GameState, now = Date.now()) => spinCooldown(state, now) === 0;
 
-/** Valeur d'un bonus actif (0 s'il n'est pas actif). */
-export function boostValue(state: GameState, kind: BoostKind, now = Date.now()): number {
-  return state.wheel?.boosts.find((b) => b.kind === kind && b.until > now)?.value ?? 0;
+/**
+ * Bonus actifs pour la journée en cours : actif du jour du tirage jusqu'au jour `untilDay` inclus.
+ * (Les bonus des anciennes sauvegardes, en heures réelles, n'ont pas de `untilDay` : ignorés.)
+ */
+export function activeBoosts(state: GameState): WheelState['boosts'] {
+  return (state.wheel?.boosts ?? []).filter((b) => typeof b.untilDay === 'number' && b.untilDay >= state.day);
 }
 
-export function activeBoosts(state: GameState, now = Date.now()): WheelState['boosts'] {
-  return (state.wheel?.boosts ?? []).filter((b) => b.until > now);
+/** Valeur d'un bonus actif (0 s'il n'est pas actif). */
+export function boostValue(state: GameState, kind: BoostKind): number {
+  return activeBoosts(state).find((b) => b.kind === kind)?.value ?? 0;
 }
+
+/** Nombre de journées restantes d'un bonus, la journée en cours comprise. */
+export const boostDaysLeft = (state: GameState, b: { untilDay: number }) => b.untilDay - state.day + 1;
 
 export interface SpinResult { index: number; prize: WheelPrize; cash: number }
 
@@ -38,7 +46,7 @@ export function spinWheel(state: GameState, now = Date.now(), random = Math.rand
   const prize = WHEEL_PRIZES[index];
   const w = wheelState(state);
   w.lastSpin = now;
-  w.boosts = w.boosts.filter((b) => b.until > now);
+  w.boosts = activeBoosts(state);
   let cash = 0;
   if (prize.cash) {
     cash = prize.cash(state.level);
@@ -46,10 +54,9 @@ export function spinWheel(state: GameState, now = Date.now(), random = Math.rand
   }
   if (prize.boost) {
     const existing = w.boosts.find((b) => b.kind === prize.boost!.kind);
-    const add = prize.boost.hours * 3600_000;
-    // Déjà actif : la durée s'ajoute.
-    if (existing) existing.until += add;
-    else w.boosts.push({ kind: prize.boost.kind, value: prize.boost.value, until: now + add });
+    // Déjà actif : les journées s'ajoutent à la fin du bonus en cours.
+    if (existing) existing.untilDay += prize.boost.days;
+    else w.boosts.push({ kind: prize.boost.kind, value: prize.boost.value, untilDay: state.day + prize.boost.days - 1 });
   }
   return { index, prize, cash };
 }

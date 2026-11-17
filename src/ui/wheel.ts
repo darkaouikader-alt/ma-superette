@@ -2,7 +2,7 @@
 import { BOOST_LABEL, WHEEL_PRIZES } from '../data/wheel';
 import { store } from '../state/store';
 import type { GameState } from '../state/types';
-import { activeBoosts, canSpin, spinCooldown, spinWheel } from '../systems/wheel';
+import { activeBoosts, boostDaysLeft, canSpin, spinCooldown, spinWheel } from '../systems/wheel';
 import { on } from './actions';
 import { sfx } from './audio';
 import { esc, money0 } from './dom';
@@ -20,6 +20,9 @@ export function formatDuration(ms: number): string {
   return `${d} j ${h % 24} h`;
 }
 
+/** « encore aujourd’hui », « encore 2 journées ». */
+const daysText = (n: number) => (n <= 1 ? 'encore aujourd’hui' : `encore ${n} journées`);
+
 export function wheelCard(state: GameState): string {
   const ready = canSpin(state);
   const boosts = activeBoosts(state);
@@ -28,7 +31,7 @@ export function wheelCard(state: GameState): string {
     ${ready
       ? '<button class="btn primary block pulse" data-act="wheel-open">🎡 Tourner la roue !</button>'
       : `<button class="btn ghost block" data-act="wheel-open">Prochain tour dans <b data-countdown="${Date.now() + spinCooldown(state)}">${formatDuration(spinCooldown(state))}</b></button>`}
-    ${boosts.length ? `<ul class="boost-list">${boosts.map((b) => `<li><span>${BOOST_LABEL[b.kind]}</span><span class="small muted">encore <b data-countdown="${b.until}">${formatDuration(b.until - Date.now())}</b></span></li>`).join('')}</ul>` : '<p class="small muted">Cagnottes et bonus temporaires (clients, expérience, prix d’achat…) qui durent de 2 heures à 2 jours, en temps réel.</p>'}
+    ${boosts.length ? `<ul class="boost-list">${boosts.map((b) => `<li><span>${BOOST_LABEL[b.kind]}</span><span class="small muted">${daysText(boostDaysLeft(state, b))}</span></li>`).join('')}</ul>` : '<p class="small muted">Cagnottes et bonus temporaires (clients, expérience, prix d’achat…) qui durent de 1 à 3 journées de jeu.</p>'}
   </section>`;
 }
 
@@ -55,7 +58,7 @@ function modalBody(state: GameState): string {
       <div class="wheel-disk" id="wheel-disk">${wheelSvg()}</div>
     </div>
     <div class="wheel-result" id="wheel-result" aria-live="polite">
-      ${ready ? '<p class="muted">Tente ta chance : les bonus durent de 2 heures à 2 jours, en temps réel.</p>' : `<p class="muted">Prochain tour dans <b data-countdown="${Date.now() + spinCooldown(state)}">${formatDuration(spinCooldown(state))}</b>.</p>`}
+      ${ready ? '<p class="muted">Tente ta chance : les bonus durent de 1 à 3 journées de jeu.</p>' : `<p class="muted">Prochain tour dans <b data-countdown="${Date.now() + spinCooldown(state)}">${formatDuration(spinCooldown(state))}</b>.</p>`}
     </div>
     <button class="btn primary xl block" id="wheel-spin" data-act="wheel-spin" ${ready ? '' : 'disabled'}>🎡 Tourner</button>
     <details class="wheel-odds"><summary class="small muted">Voir les lots et leurs chances</summary>

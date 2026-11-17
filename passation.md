@@ -5,7 +5,7 @@ Document de reprise du projet : où en est le jeu, comment il est construit, ce 
 - **Jeu en ligne** : https://darkaouikader-alt.github.io/ma-superette/
 - **Code** : https://github.com/darkaouikader-alt/ma-superette (branche `main`)
 - **Aperçu Claude** (sans compte en ligne) : https://claude.ai/artifact/3uZZq2hiX4HSQi8omiUQCU
-- **État** : 75 tests au vert, publication automatique réussie (dernier commit `388d893`).
+- **État** : 78 tests au vert, publication automatique réussie (dernier commit : voir `git log`).
 
 ## 1. Objectif
 
@@ -19,7 +19,7 @@ fidélise sur la durée (compte en ligne, classement, roue, longue progression).
 ```bash
 npm install
 npm run dev          # http://localhost:5173
-npm test             # 75 tests (Vitest)
+npm test             # 78 tests (Vitest)
 npm run build        # vérification TypeScript + build dans dist/
 npm run simulate -- 80   # bot d'équilibrage : 80 jours sans interface
 ```
@@ -90,7 +90,7 @@ npm run simulate -- 80   # bot d'équilibrage : 80 jours sans interface
   - compte demandé au premier lancement (on peut jouer sans) ;
   - synchronisation entre appareils ;
   - nom de joueur unique et classement mondial (top 100 + rang du joueur).
-- **Roue de la fortune** : un tour par heure réelle, avec cagnottes et bonus temporaires de 2 h à 2 jours.
+- **Roue de la fortune** : un tour par heure réelle, avec cagnottes et bonus temporaires de 1 à 3 journées de jeu (pas en heures réelles, pour éviter d’enchaîner des dizaines de journées boostées).
 - **Mobile** :
   - barre d'onglets en bas, cartes à la place des tableaux, fenêtres qui montent du bas ;
   - correctifs propres à Safari sur iPhone ;
