@@ -1,6 +1,6 @@
 // Formule de demande (pure, testée) :
 //   demande = base × poids_essentiel × facteur_prix × facteur_réputation
-//             × facteur_jour × événements × promo × affluence × aléa(±10 %)
+//             × facteur_jour × événements × promo × panier moyen × affluence × aléa(±10 %)
 // (le prix utilisé est le prix promo s'il y en a un)
 import { BALANCE } from '../data/constants';
 import type { EventDef } from '../data/events';
@@ -17,6 +17,8 @@ export interface DemandContext {
   marketMult: number;
   /** Produits en promotion (id → % de réduction) : bonus de visibilité. */
   promos?: Record<string, number>;
+  /** Panier moyen (taille du magasin) : multiplie les achats sans ajouter de clients en caisse. */
+  basket?: number;
 }
 
 export interface DemandBreakdown {
@@ -32,6 +34,7 @@ export interface DemandBreakdown {
   /** Demande au prix du marché (facteur_prix = 1). */
   /** Bonus de visibilité d'un produit en promotion. */
   promoFactor: number;
+  basket: number;
   neutral: number;
   total: number;
 }
@@ -102,10 +105,11 @@ export function computeDemand(product: Product, price: number, ctx: DemandContex
     noise,
     market,
     promoFactor: ctx.promos?.[product.id] ? 1 + BALANCE.PROMO_VISIBILITY : 1,
+    basket: ctx.basket ?? 1,
     neutral: 0,
     total: 0,
   };
-  b.neutral = b.base * b.essentialWeight * b.repFactor * b.dayFactor * b.eventFactor * b.promoFactor * b.traffic * b.noise;
+  b.neutral = b.base * b.essentialWeight * b.repFactor * b.dayFactor * b.eventFactor * b.promoFactor * b.basket * b.traffic * b.noise;
   b.total = b.neutral * b.priceFactor;
   return b;
 }

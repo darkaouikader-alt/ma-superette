@@ -11,7 +11,7 @@ import { activeEvents, rollEvents, weatherFor } from './events';
 import { addXp, ensureObjectives, evaluateObjectives, expectedEssentials, refreshSellable, sellableProducts } from './progression';
 import { computeReputation } from './reputation';
 import { makeRng, stochRound } from './rng';
-import { assortment, expireStock, fillAll, sellFromShelf, shelfCapacityFor, shelfQty, slotCapacity, totalQty, warehouseQty, coldCapacity, coldUsed } from './stock';
+import { refillTimes, assortment, expireStock, fillAll, sellFromShelf, shelfCapacityFor, shelfQty, slotCapacity, totalQty, warehouseQty, coldCapacity, coldUsed } from './stock';
 import { receiveDeliveries } from './suppliers';
 import { expirePromotions } from './promotions';
 import { dailyBranchIncome } from './branches';
@@ -103,7 +103,7 @@ export function runDay(state: GameState): DayOutcome {
   const sales: DayReport['sales'] = {};
   const missedUnits: Record<string, number> = {};
   const cogsBy: Record<string, number> = {};
-  const refills = hasStocker ? B.STOCKER_REFILLS.slice() : [];
+  const refills = hasStocker ? refillTimes(state) : [];
   let revenue = 0, cogs = 0, unitsSold = 0;
   let customersServed = 0, disappointedStock = 0, disappointedPrice = 0;
   let essWanted = 0, essSold = 0, otherWanted = 0, otherMissed = 0;

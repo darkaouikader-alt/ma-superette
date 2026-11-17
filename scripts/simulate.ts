@@ -11,6 +11,9 @@ import { autoArrange, totalQty } from '../src/systems/stock';
 import { autoReorder, fastestSupplier, placeOrders, setCartLots, inTransit, cartView, storageCommitted, storageCapacity } from '../src/systems/suppliers';
 import { BALANCE, WEEKDAYS } from '../src/data/constants';
 import { DECOR_PARTS, DECOR_SLOTS } from '../src/data/decor';
+import { BRANCHES } from '../src/data/branches';
+import { buyBranch, dailyBranchIncome, ownsBranch } from '../src/systems/branches';
+import { marketGrowth } from '../src/systems/market';
 import { canEquip, charmSummary, checkDecorUnlocks, equipPart, partCharm } from '../src/systems/decor';
 
 const days = Number(process.argv[2] ?? 10);
@@ -33,12 +36,14 @@ for (let i = 0; i < days; i++) {
   for (const c of CATEGORIES) {
     if (c.licence && !state.licences.includes(c.id) && state.level >= categoryLevel(c.id) && state.cash > c.licence + reserve) buyLicence(state, c.id);
   }
-  const prio = [...['cashier', 'fridge', 'stocker'], ...(process.env.NO_BUYER ? [] : ['buyer']), 'freezer', 'shelves', 'warehouse', 'deco', 'sign', 'billboard', 'express'];
+  const prio = [...['cashier', 'fridge', 'stocker'], ...(process.env.NO_BUYER ? [] : ['buyer']), 'freezer', 'shelves', 'warehouse', 'deco', 'sign', 'billboard', 'express', 'logistics'];
   for (const id of prio) {
     const cost = upgradeCost(state, id);
     const def = UPGRADES.find((u) => u.id === id)!;
     if (cost !== null && state.level >= def.minLevel && state.cash > cost + reserve) buyUpgrade(state, id);
   }
+  // Succursales : dès que la trésorerie le permet (en gardant la réserve)
+  for (const b of BRANCHES) if (!ownsBranch(state, b.id) && state.level >= b.minLevel && state.cash > b.cost + reserve) buyBranch(state, b.id);
   // 3. Nouveaux produits : un premier lot pour tout produit vendable jamais stocké
   if (mode !== 'lazy') {
     autoReorder(state, 'all');
@@ -90,4 +95,5 @@ for (let i = 0; i < days; i++) {
   startNextDay(state);
 }
 console.log(`Façade : ${state.decor.owned.length}/${DECOR_PARTS.length} éléments gagnés · charme ${charmSummary(state).total} · +${(charmSummary(state).traffic * 100).toFixed(1)} % clients · +${charmSummary(state).rep} rép/jour`);
+console.log(`Marché : +${Math.round((marketGrowth(state) - 1) * 100)} % · succursales ${state.branches?.length ?? 0}/${BRANCHES.length} (+${dailyBranchIncome(state).toFixed(0)} €/jour)`);
 console.log(`\nTotal : CA ${state.totals.revenue.toFixed(0)} € · bénéfice ${state.totals.profit.toFixed(0)} € · pertes ${state.totals.waste.toFixed(0)} € · objectifs longs validés ${state.objectives.longDone.length} · final ${state.finalDone}`);

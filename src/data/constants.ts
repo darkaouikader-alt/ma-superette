@@ -18,13 +18,13 @@ export const BALANCE = {
 
   // Rayons
   /** Volume d'un emplacement de rayon (unités × taille). */
-  SLOT_VOLUME: 40,
+  SLOT_VOLUME: 60,
   /** Emplacements réfrigérés / surgelés ajoutés par niveau d'équipement. */
   COLD_SLOTS_PER_LEVEL: 4,
   SHELF_UPGRADE_SLOTS: 4,
-  WAREHOUSE_UPGRADE_VOLUME: 300,
+  WAREHOUSE_UPGRADE_VOLUME: 800,
   /** Volume ajouté par niveau d'« Entrepôt logistique ». */
-  LOGISTICS_VOLUME: 2500,
+  LOGISTICS_VOLUME: 15000,
 
   // Demande
   /** Multiplicateur global de la demande (levier principal de difficulté). */
@@ -70,11 +70,19 @@ export const BALANCE = {
   PRICE_IMAGE_SLOPE: 2,
   PRICE_IMAGE_MIN: 0.4,
   /** Clients encaissables par jour selon le niveau de caissier (0 = le gérant seul). */
-  CHECKOUT_CAPACITY: [70, 130, 220, 340, 520, 750, 1000, 1300, 1700],
+  CHECKOUT_CAPACITY: [70, 130, 220, 340, 520, 750, 1000, 1300, 1700, 2200, 2800, 3500, 4300, 5200, 6200, 7500],
   SIGN_TRAFFIC: 0.04,
   BILLBOARD_TRAFFIC: 0.08,
   /** L'employé de rayon regarnit les rayons à ces moments de la journée (0..1). */
   STOCKER_REFILLS: [0.3, 0.55, 0.8],
+  /** Regarnissages par jour selon la taille de l'équipe de rayon (index = niveau ; 3 = STOCKER_REFILLS). */
+  STOCKER_REFILL_COUNT: [0, 3, 5, 8, 12, 17, 23],
+
+  // Économie évolutive
+  /** Croissance du marché : le quartier se développe à chaque semaine jouée (+1 % de clients)… */
+  MARKET_GROWTH_PER_WEEK: 0.01,
+  /** … jusqu'à ce plafond (+80 %). La croissance profite aussi aux succursales. */
+  MARKET_GROWTH_MAX: 0.8,
 
   // Charges
   ELECTRICITY_BASE: 4,
@@ -117,7 +125,7 @@ export const BALANCE = {
   XP_PER_EURO: 1,
   XP_PER_REP_POINT: 0.5,
   /** Part des revenus des succursales comptée en XP. */
-  XP_PER_BRANCH_EURO: 0.5,
+  XP_PER_BRANCH_EURO: 0.25,
 
   // Événements
   EVENT_FIRST_DAY: 4,

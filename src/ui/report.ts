@@ -131,6 +131,8 @@ export function maybeCelebrate(): void {
         <div><b>+${n.slots}</b><span>emplacements de rayon</span></div>
         <div><b>+${num(n.warehouse)}</b><span>volume d’entrepôt</span></div>
         <div><b>+${n.trafficPct} %</b><span>clients potentiels</span></div>
+        ${n.basketPct > 0 ? `<div><b>+${n.basketPct} %</b><span>panier moyen</span></div>` : ''}
+        ${n.buyingPct > 0 ? `<div><b>−${n.buyingPct} %</b><span>prix fournisseurs (centrale d’achat)</span></div>` : ''}
       </div>
       ${tierOf(level) > tierOf(level - 1) ? `<div class="lu-tier"><span class="lu-tier-preview">${storefrontSvg(state, { level })}</span><p><b>🏗️ Ton magasin devient ${esc(tierWithArticle(tierOf(level)))} !</b> Nouvelle architecture, et de nouveaux éléments de façade sont maintenant disponibles. Les éléments trop modestes risquent de devenir démodés.</p></div>` : ''}
       ${decorAtLevel.length ? `<h4>🎁 Nouveaux éléments de façade</h4><div class="lu-cats">${decorAtLevel.map((p) => `<span class="lu-cat">${p.emoji} ${esc(p.name)}</span>`).join('')}</div>` : ''}

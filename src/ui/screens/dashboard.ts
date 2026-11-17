@@ -9,7 +9,7 @@ import { objectivesPanel, xpProgress, type ObjectiveView } from '../../systems/p
 import { on } from '../actions';
 import { collectAlerts } from '../alerts';
 import { revenueChart } from '../chart';
-import { badge, esc, gauge, money, money0, num, pastille } from '../dom';
+import { badge, esc, gauge, money, money0, num, num1, pastille } from '../dom';
 import { storefrontSvg } from '../storefront';
 import { toast } from '../toast';
 import { ui } from '../uiState';
@@ -18,6 +18,8 @@ import { unseenDecor } from './decor';
 import { historyCard } from '../history';
 import { leaderboardCard } from '../leaderboard';
 import { wheelCard } from '../wheel';
+import { economySummary } from '../../systems/market';
+import { dailyBranchIncome } from '../../systems/branches';
 
 interface Coach { title: string; text: string; cta?: string; screen?: string }
 
@@ -43,6 +45,22 @@ function objectiveRow(v: ObjectiveView): string {
       <div class="obj-reward">${v.done ? 'Validé !' : `Récompense : ${reward}`}</div>
     </div>
   </div>`;
+}
+
+/** Économie évolutive : croissance du marché, panier moyen, centrale d'achat, succursales. */
+function economyCard(state: GameState): string {
+  const e = economySummary(state);
+  const branches = dailyBranchIncome(state);
+  return `<section class="card">
+    <div class="card-head"><h2>🌍 Économie</h2><span class="muted small">évolue avec ton enseigne</span></div>
+    <ul class="boost-list">
+      <li><span>📈 Croissance du marché</span><b class="pos">+${num1(e.growthPct)} %</b></li>
+      <li><span>🛒 Panier moyen</span><b>×${num1(e.basket)}</b></li>
+      <li><span>🏷️ Centrale d’achat</span><b>${e.buyingPct ? `−${e.buyingPct} %` : '—'}</b></li>
+      ${branches > 0 ? `<li><span>🏬 Succursales</span><b class="pos">+${money0(branches)}/jour</b></li>` : ''}
+    </ul>
+    <p class="small muted">${e.maxGrowth ? 'Le marché a atteint sa taille maximale.' : `Le quartier se développe : +${num1(BALANCE.MARKET_GROWTH_PER_WEEK * 100)} % de clients chaque semaine jouée.`} Le panier moyen et la centrale d’achat progressent avec ton niveau.</p>
+  </section>`;
 }
 
 export function renderDashboard(state: GameState): string {
@@ -129,6 +147,7 @@ export function renderDashboard(state: GameState): string {
           ${!state.morningNews.length && !events.length && !upcoming.length ? '<li class="muted">Journée ordinaire, rien à signaler.</li>' : ''}
         </ul>
       </section>
+      ${economyCard(state)}
       ${wheelCard(state)}
       ${leaderboardCard(state)}
       <section class="card">

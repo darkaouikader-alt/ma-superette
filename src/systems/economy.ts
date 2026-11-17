@@ -7,15 +7,16 @@ import type { GameState, Product } from '../state/types';
 import { computeDemand, reputationFactor, weekdayFactor, type DemandBreakdown, type DemandContext } from './demand';
 import { decorTraffic } from './decor';
 import { boostValue } from './wheel';
+import { basketFactor, marketGrowth } from './market';
 import { activeEvents, eventModifiers, marketPrice, weatherFor } from './events';
 
 export const weekdayOf = (day: number) => (day - 1) % 7;
 export const up = (state: GameState, id: string) => state.upgrades[id] ?? 0;
 export const round2 = (v: number) => Math.round(v * 100) / 100;
 
-/** Multiplicateur d'affluence structurel (niveau + enseigne + publicité). */
+/** Multiplicateur d'affluence structurel (niveau + enseigne + publicité + croissance du marché). */
 export function trafficMultiplier(state: GameState): number {
-  return levelDef(state.level).traffic * (1 + up(state, 'sign') * BALANCE.SIGN_TRAFFIC + up(state, 'billboard') * BALANCE.BILLBOARD_TRAFFIC);
+  return levelDef(state.level).traffic * marketGrowth(state) * (1 + up(state, 'sign') * BALANCE.SIGN_TRAFFIC + up(state, 'billboard') * BALANCE.BILLBOARD_TRAFFIC);
 }
 
 // ── Promotions (lecture seule ; les actions sont dans promotions.ts) ──
@@ -82,7 +83,7 @@ export function checkoutCapacity(state: GameState): number {
 /** Contexte de demande pour un jour donné. `neutralDay` = jour moyen sans météo ni événement. */
 export function demandContext(state: GameState, day = state.day, neutralDay = false): DemandContext {
   if (neutralDay) {
-    return { reputation: state.reputation, weekday: -1, traffic: trafficMultiplier(state) * decorTraffic(state) * (1 + boostValue(state, 'traffic')), events: [], marketMult: 1 + boostValue(state, 'price'), promos: promoMap(state, day) };
+    return { reputation: state.reputation, weekday: -1, traffic: trafficMultiplier(state) * decorTraffic(state) * (1 + boostValue(state, 'traffic')), events: [], marketMult: 1 + boostValue(state, 'price'), promos: promoMap(state, day), basket: basketFactor(state) };
   }
   const mods = eventModifiers(state, day);
   return {
@@ -93,6 +94,7 @@ export function demandContext(state: GameState, day = state.day, neutralDay = fa
     // « Clients généreux » (roue) : ils jugent les prix par rapport à un marché perçu plus haut.
     marketMult: mods.market * (1 + boostValue(state, 'price')),
     promos: promoMap(state, day),
+    basket: basketFactor(state),
   };
 }
 

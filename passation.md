@@ -5,7 +5,7 @@ Document de reprise du projet : où en est le jeu, comment il est construit, ce 
 - **Jeu en ligne** : https://darkaouikader-alt.github.io/ma-superette/
 - **Code** : https://github.com/darkaouikader-alt/ma-superette (branche `main`)
 - **Aperçu Claude** (sans compte en ligne) : https://claude.ai/artifact/3uZZq2hiX4HSQi8omiUQCU
-- **État** : 78 tests au vert, publication automatique réussie (dernier commit : voir `git log`).
+- **État** : 84 tests au vert, publication automatique réussie (dernier commit : voir `git log`).
 
 ## 1. Objectif
 
@@ -19,7 +19,7 @@ fidélise sur la durée (compte en ligne, classement, roue, longue progression).
 ```bash
 npm install
 npm run dev          # http://localhost:5173
-npm test             # 78 tests (Vitest)
+npm test             # 84 tests (Vitest)
 npm run build        # vérification TypeScript + build dans dist/
 npm run simulate -- 80   # bot d'équilibrage : 80 jours sans interface
 ```
@@ -33,12 +33,12 @@ npm run simulate -- 80   # bot d'équilibrage : 80 jours sans interface
 
 | Dossier | Rôle |
 |---|---|
-| `src/data/` | **Tout l'équilibrage**, sans logique : constantes, 108 produits, fournisseurs, 14 niveaux, améliorations, objectifs, événements, campagnes, succursales, 79 éléments de façade, roue |
-| `src/systems/` | Logique pure, testable sans navigateur : demande, économie, stock, fournisseurs, simulation d'une journée, progression, réputation, promotions, façade, acheteur, succursales, roue |
+| `src/data/` | **Tout l'équilibrage**, sans logique : constantes, 108 produits, fournisseurs, 20 niveaux, améliorations, objectifs, événements, campagnes, succursales, 79 éléments de façade, roue |
+| `src/systems/` | Logique pure, testable sans navigateur : demande, économie, marché (économie évolutive), stock, fournisseurs, simulation d'une journée, progression, réputation, promotions, façade, acheteur, succursales, roue |
 | `src/state/` | `types.ts` (modèle), `store.ts` (état + nouvelle partie), `save.ts` (localStorage, versionné) |
 | `src/cloud/` | Firebase : `config.ts` (identifiants), `sync.ts` (synchronisation), `social.ts` (nom de joueur, classement) |
 | `src/ui/` | Coquille (`app.ts`), journée animée, bilan, vitrine SVG, composants ; un fichier par écran dans `screens/` |
-| `tests/` | 13 fichiers de tests |
+| `tests/` | 14 fichiers de tests |
 | `public/` | PWA : `manifest.webmanifest`, `sw.js` (hors ligne), icônes |
 | `.github/workflows/deploy.yml` | Tests, build et publication sur GitHub Pages à chaque push sur `main` |
 
@@ -65,8 +65,16 @@ npm run simulate -- 80   # bot d'équilibrage : 80 jours sans interface
   provoquait des ruptures.
 - **Responsable des achats** : commandes « juste à temps », chez le fournisseur le moins cher qui livre
   avant la rupture. Il rapporte +18 % de bénéfice sur une partie simulée.
-- **Fin de partie étendue** : 14 niveaux, améliorations prolongées, entrepôt logistique, succursales.
-  La progression simulée dure environ 225 jours, contre 75 avant.
+- **Fin de partie étendue** : 20 niveaux, améliorations prolongées, entrepôt logistique, 12 succursales.
+- **Économie évolutive** (`src/systems/market.ts`) : objectif, atteindre des millions d'euros.
+  - croissance du marché : +1 % de clients par semaine jouée, plafond +80 % (succursales comprises) ;
+  - panier moyen par niveau (`basket` dans `levels.ts`) : ×1 jusqu'au niveau 7, ×2 au niveau 20 ;
+  - centrale d'achat par niveau (`buying`) : jusqu'à −13 % sur les prix fournisseurs ;
+  - stock fortement augmenté (rayons de 60, entrepôt ×2,5 à ×5, logistique +15 000 par niveau) et
+    équipe de rayon à 6 niveaux (jusqu'à 23 regarnissages par jour) : sans elle, les rayons
+    devenaient le goulot en fin de partie.
+  - Bot sur 600 jours : niveau 14 au jour 112, niveau 20 au jour 436 ; 1 M€ de trésorerie vers le
+    jour 190, plus de 20 M€ vers le jour 430, plus de 100 M€ ensuite.
 - **Performances** : plus de flou d'arrière-plan ; animations décoratives coupées par défaut sur écran
   tactile (réglage dans Paramètres) ; décor en pause sous les fenêtres. Au repos, le travail du
   navigateur passe de 101 à 5 ms par seconde.
@@ -113,7 +121,10 @@ npm run simulate -- 80   # bot d'équilibrage : 80 jours sans interface
 ## 7. Reste à faire
 
 **Côté propriétaire du projet :**
-1. **Activer le classement mondial.** Dans la console Firebase, ouvrir Firestore → Règles, coller le
+0. **Republier les règles Firestore (section 9)** : le plafond de score passe de 100 millions à
+   1 000 milliards, car l'XP (le score) dépasse maintenant 100 millions en fin de partie. Sans cela,
+   les meilleurs joueurs ne pourraient plus mettre à jour leur ligne du classement.
+1. **Activer le classement mondial** (fait). Dans la console Firebase, ouvrir Firestore → Règles, coller le
    bloc complet de règles (sauvegardes, `profiles`, `usernames`, `leaderboard`), puis cliquer sur
    **Publier**. Texte des règles : section 9 ci-dessous. Tant que ce n'est pas fait, la carte du
    classement indique « pas encore activé » ; tout le reste fonctionne.
@@ -183,7 +194,7 @@ service cloud.firestore {
       allow delete: if request.auth != null && request.auth.uid == uid;
       allow create, update: if request.auth != null && request.auth.uid == uid
         && request.resource.data.score is int
-        && request.resource.data.score >= 0 && request.resource.data.score <= 100000000
+        && request.resource.data.score >= 0 && request.resource.data.score <= 1000000000000
         && request.resource.data.username == get(/databases/$(database)/documents/profiles/$(uid)).data.username;
     }
   }

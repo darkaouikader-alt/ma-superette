@@ -7,6 +7,19 @@ import { dayFactor } from './demand';
 import { expectedDemand, up, weekdayOf } from './economy';
 import { isSellable, sellableProducts } from './progression';
 
+/** Regarnissages par jour de l'équipe de rayon (0 sans employé). */
+export function stockerRefills(state: GameState): number {
+  const c = BALANCE.STOCKER_REFILL_COUNT;
+  return c[Math.min(up(state, 'stocker'), c.length - 1)];
+}
+
+/** Moments de la journée (0..1) où l'équipe regarnit les rayons. */
+export function refillTimes(state: GameState): number[] {
+  const n = stockerRefills(state);
+  if (n === BALANCE.STOCKER_REFILLS.length) return BALANCE.STOCKER_REFILLS.slice();
+  return Array.from({ length: n }, (_, i) => (i + 1) / (n + 1));
+}
+
 export const slotCapacity = (p: Product) => Math.max(1, Math.floor(BALANCE.SLOT_VOLUME / p.size));
 
 export function totalQty(state: GameState, pid: string): number {
@@ -186,8 +199,9 @@ export function assortment(state: GameState): Set<string> {
  */
 export function autoArrange(state: GameState): void {
   const current = assortment(state);
-  // Avec un employé de rayon, les rayons sont regarnis en journée : moins de facing nécessaire.
-  const refills = up(state, 'stocker') > 0 ? 2 : 1;
+  // Avec une équipe de rayon, les rayons sont regarnis en journée : moins de facing nécessaire
+  // (marge de sécurité : on compte la moitié des remplissages).
+  const refills = Math.max(1, (stockerRefills(state) + 1) / 2);
   const cands = sellableProducts(state)
     .filter((p) => totalQty(state, p.id) > 0 || current.has(p.id))
     .map((p) => ({ p, need: Math.max(1, Math.ceil((expectedDemand(state, p) * 1.25 * p.size) / BALANCE.SLOT_VOLUME / refills)), got: 0, score: expectedDemand(state, p) * (p.essential ? 3 : 1) }))
@@ -196,7 +210,7 @@ export function autoArrange(state: GameState): void {
   const plan: string[] = [];
   const total = state.slots.length;
   // 1er passage : un emplacement par produit ; passages suivants : selon le besoin.
-  for (let pass = 0; pass < 6 && plan.length < total; pass++) {
+  for (let pass = 0; pass < 40 && plan.length < total; pass++) {
     let added = false;
     for (const c of cands) {
       if (plan.length >= total) break;

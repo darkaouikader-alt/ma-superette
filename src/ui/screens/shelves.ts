@@ -48,7 +48,7 @@ export function renderShelves(state: GameState): string {
   const freezerCap = coldCapacity(state, 'freezer');
   return `
   <div class="screen-head">
-    <div><h1>🗄️ Rayons</h1><p class="muted">Seuls les produits placés en rayon sont vendus. ${up(state, 'stocker') ? '🧑‍🔧 Ton employé remplit les rayons chaque matin et en journée.' : 'Remplis-les chaque matin depuis l’entrepôt.'}</p></div>
+    <div><h1>🗄️ Rayons</h1><p class="muted">Seuls les produits placés en rayon sont vendus. ${up(state, 'stocker') ? '🧑‍🔧 Ton équipe de rayon remplit les rayons chaque matin et en journée.' : 'Remplis-les chaque matin depuis l’entrepôt.'}</p></div>
     <div class="head-actions">
       <button class="btn ghost" data-act="auto-arrange" title="Répartit tous les emplacements selon la demande">✨ Agencement auto</button>
       <button class="btn primary" data-act="fill-all">📥 Tout remplir</button>

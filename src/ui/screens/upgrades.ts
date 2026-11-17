@@ -7,6 +7,7 @@ import type { CategoryId, GameState } from '../../state/types';
 import { store } from '../../state/store';
 import { checkoutCapacity, up } from '../../systems/economy';
 import { buyLicence, buyUpgrade, categoryLevel, upgradeCost } from '../../systems/progression';
+import { stockerRefills } from '../../systems/stock';
 import { on } from '../actions';
 import { sfx } from '../audio';
 import { badge, catPastille, esc, gauge, money0 } from '../dom';
@@ -24,6 +25,7 @@ function upgradeCard(state: GameState, u: UpgradeDef): string {
   const afford = !maxed && state.cash >= cost;
   let extra = '';
   if (u.id === 'cashier') extra = `Capacité actuelle : ${checkoutCapacity(state)} clients/jour${!maxed ? ` → ${BALANCE.CHECKOUT_CAPACITY[lvl + 1]}` : ''}`;
+  if (u.id === 'stocker' && lvl > 0) extra = `Regarnissages : ${stockerRefills(state)} par jour${!maxed ? ` → ${BALANCE.STOCKER_REFILL_COUNT[lvl + 1]}` : ''}`;
   if (u.salary) extra += `${extra ? ' · ' : ''}Salaire : ${u.salary} €/jour${u.costs.length > 1 ? ' par niveau' : ''}`;
   return `<div class="card upgrade ${locked ? 'locked' : ''} ${maxed ? 'maxed' : ''}">
     <div class="up-head">${catPastille(u.emoji, 150, 'lg')}<div><h3>${esc(u.name)}</h3>${u.costs.length > 6 ? `<div class="pips-text"><span class="small muted">Niveau ${lvl} / ${u.costs.length}</span>${gauge((lvl / u.costs.length) * 100, 'green')}</div>` : `<div class="pips">${u.costs.map((_, i) => `<i class="${i < lvl ? 'on' : ''}"></i>`).join('')}</div>`}</div></div>

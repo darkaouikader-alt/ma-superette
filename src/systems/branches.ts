@@ -2,6 +2,7 @@
 import { BRANCHES, BRANCH_BY_ID, type BranchDef } from '../data/branches';
 import type { GameState } from '../state/types';
 import { round2 } from './economy';
+import { marketGrowth } from './market';
 
 export const ownedBranches = (state: GameState): BranchDef[] => (state.branches ?? []).map((id) => BRANCH_BY_ID[id]).filter(Boolean);
 export const ownsBranch = (state: GameState, id: string) => (state.branches ?? []).includes(id);
@@ -10,7 +11,7 @@ export const ownsBranch = (state: GameState, id: string) => (state.branches ?? [
 export const branchRepFactor = (reputation: number) => 0.7 + 0.6 * Math.min(100, Math.max(0, reputation)) / 100;
 
 export function branchIncomeOf(def: BranchDef, state: GameState): number {
-  return round2(def.income * branchRepFactor(state.reputation));
+  return round2(def.income * branchRepFactor(state.reputation) * marketGrowth(state));
 }
 
 /** Revenu total des succursales pour la journée. */

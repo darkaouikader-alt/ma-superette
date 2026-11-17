@@ -5,6 +5,7 @@ import { SUPPLIERS, SUPPLIER_BY_ID, type SupplierDef } from '../data/suppliers';
 import type { GameState, Order, Product } from '../state/types';
 import { round2, up } from './economy';
 import { boostValue } from './wheel';
+import { buyingDiscount } from './market';
 import { eventModifiers } from './events';
 import { expectedEssentials, sellableProducts } from './progression';
 import { addStock, assortment, expiringBy, forecastDemand, totalQty, warehouseCapacity } from './stock';
@@ -19,7 +20,8 @@ export function effectiveDelay(sup: SupplierDef, state: GameState): number {
 }
 
 export function unitCost(p: Product, sup: SupplierDef, state: GameState): number {
-  return round2(p.cost * sup.priceFactor * eventModifiers(state).supplierCost * (1 - boostValue(state, 'supplier')));
+  // Centrale d'achat (niveau du magasin) et roue « Fournisseurs −10 % ».
+  return round2(p.cost * sup.priceFactor * eventModifiers(state).supplierCost * (1 - buyingDiscount(state)) * (1 - boostValue(state, 'supplier')));
 }
 
 export interface LinePrice { qty: number; unit: number; discountPct: number; total: number }

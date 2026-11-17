@@ -10,24 +10,25 @@ import { runDay } from '../src/systems/simulation';
 import { warehouseCapacity } from '../src/systems/stock';
 
 describe('fin de partie étendue', () => {
-  it('14 niveaux, de la petite épicerie à l’enseigne nationale', () => {
-    expect(MAX_LEVEL).toBe(14);
-    expect(levelForXp(10_000_000)).toBe(14);
+  it('20 niveaux, de la petite épicerie à l’empire mondial', () => {
+    expect(MAX_LEVEL).toBe(20);
+    expect(levelForXp(3_000_000)).toBe(14);
+    expect(levelForXp(100_000_000)).toBe(20);
     const s = createNewGame(1);
-    addXp(s, 10_000_000);
-    expect(s.level).toBe(14);
-    expect(s.slots.length).toBeGreaterThanOrEqual(160);
+    addXp(s, 100_000_000);
+    expect(s.level).toBe(20);
+    expect(s.slots.length).toBeGreaterThanOrEqual(300);
   });
 
-  it('améliorations prolongées : caisses jusqu’à 1 700 clients, entrepôt logistique', () => {
+  it('améliorations prolongées : caisses jusqu’à 7 500 clients, entrepôt logistique', () => {
     const s = createNewGame(1);
-    s.level = 14; s.cash = 10_000_000;
+    s.level = 20; s.cash = 100_000_000;
     while (buyUpgrade(s, 'cashier') === null);
-    expect(checkoutCapacity(s)).toBe(1700);
+    expect(checkoutCapacity(s)).toBe(7500);
     const before = warehouseCapacity(s);
     expect(buyUpgrade(s, 'logistics')).toBeNull();
-    expect(warehouseCapacity(s)).toBe(before + 2500);
-    expect(UPGRADE_BY_ID.shelves.costs.length).toBe(12);
+    expect(warehouseCapacity(s)).toBe(before + 15000);
+    expect(UPGRADE_BY_ID.shelves.costs.length).toBe(20);
   });
 
   it('succursales : niveau et trésorerie requis, revenu versé chaque soir selon la réputation', () => {

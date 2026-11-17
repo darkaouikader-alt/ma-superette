@@ -97,6 +97,8 @@ export interface LevelNews {
   level: number; name: string;
   products: Product[]; categories: CategoryId[];
   slots: number; warehouse: number; trafficPct: number;
+  /** Panier moyen (en % de plus) et remise de la centrale d'achat gagnés à ce niveau. */
+  basketPct: number; buyingPct: number;
 }
 
 export function levelNews(level: number): LevelNews {
@@ -109,6 +111,8 @@ export function levelNews(level: number): LevelNews {
     level, name: def.name, products, categories,
     slots: def.slots - prev.slots, warehouse: def.warehouse - prev.warehouse,
     trafficPct: Math.round((def.traffic / prev.traffic - 1) * 100),
+    basketPct: Math.round((def.basket / prev.basket - 1) * 100),
+    buyingPct: Math.round((def.buying - prev.buying) * 100),
   };
 }
 
