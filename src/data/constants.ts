@@ -126,6 +126,8 @@ export const BALANCE = {
   XP_PER_REP_POINT: 0.5,
   /** Part des revenus des succursales comptée en XP. */
   XP_PER_BRANCH_EURO: 0.25,
+  /** Part du chiffre d'affaires des autres magasins gérés comptée en XP. */
+  XP_PER_SHOP_EURO: 0.5,
 
   // Événements
   EVENT_FIRST_DAY: 4,

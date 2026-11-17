@@ -17,6 +17,7 @@ import { expirePromotions } from './promotions';
 import { dailyBranchIncome } from './branches';
 import { runBuyer } from './buyer';
 import { boostValue } from './wheel';
+import { activeShopIndex, forEachShop, manageShop, shopCount, shopList } from './shops';
 import { charmSummary, checkDecorUnlocks } from './decor';
 
 export interface SimSale { pid: string; qty: number; amount: number }
@@ -48,14 +49,17 @@ function shelfSnapshot(state: GameState): Record<string, number> {
   return snap;
 }
 
-export function runDay(state: GameState): DayOutcome {
+/** Résultat de la journée d'un magasin (sans ce qui concerne toute l'enseigne). */
+interface ShopDayResult extends DayOutcome { essWanted: number; noWaste: boolean }
+
+/** Journée d'un magasin (le magasin courant) : clients, ventes, charges du magasin, péremption, réputation. */
+function shopDay(state: GameState, salt = 0): ShopDayResult {
   const B = BALANCE;
   const day = state.day;
-  const rng = makeRng(state.seed + day * 7919);
+  const rng = makeRng(state.seed + day * 7919 + salt * 104729);
   const ctx = demandContext(state, day);
   const weather = weatherFor(state, day);
   const repBefore = state.reputation;
-  const levelBefore = state.level;
   const hasStocker = up(state, 'stocker') > 0;
 
   if (hasStocker) fillAll(state);
@@ -155,11 +159,7 @@ export function runDay(state: GameState): DayOutcome {
   const expired = expireStock(state, day);
   const waste = round2(expired.reduce((s, e) => s + e.value, 0));
   state.cash = round2(state.cash + revenue - charges.total);
-  const interest = payLoan(state);
-  // Succursales : revenu net versé chaque soir.
-  const branchIncome = dailyBranchIncome(state);
-  state.cash = round2(state.cash + branchIncome);
-  const profit = round2(revenue - cogs - charges.total - waste - interest + branchIncome);
+  const profit = round2(revenue - cogs - charges.total - waste);
 
   const stockouts = Object.keys(missedUnits);
   const lostSales = summarizeLostSales(state, day, missedUnits, refusedUnits, queueUnits);
@@ -198,31 +198,69 @@ export function runDay(state: GameState): DayOutcome {
       ps.cogs = round2(ps.cogs + (cogsBy[pid] ?? 0));
     }
   }
-  state.totals.revenue = round2(state.totals.revenue + revenue);
-  state.totals.profit = round2(state.totals.profit + profit);
-  state.totals.customers += customersServed;
-  state.totals.waste = round2(state.totals.waste + waste);
-  state.totals.bestProfit = Math.max(state.totals.bestProfit, profit);
-  state.totals.noWasteStreak = expired.length === 0 ? (state.totals.noWasteStreak ?? 0) + 1 : 0;
-  state.objectives.essentialStreak = essentialStockouts.length === 0 && essWanted > 0 ? state.objectives.essentialStreak + 1 : 0;
-
-  const xpBefore = state.xp;
-  // Roue « Expérience ×1,5 » : multiplie l'XP de la journée.
-  addXp(state, ((revenue + branchIncome * B.XP_PER_BRANCH_EURO) * B.XP_PER_EURO + state.reputation * B.XP_PER_REP_POINT) * (1 + boostValue(state, 'xp')));
-
   const report: DayReport = {
-    day, revenue, cogs, branchIncome, lostSales,
+    day, revenue, cogs, branchIncome: 0, lostSales,
     rent: charges.rent, electricity: charges.electricity, salaries: charges.salaries,
-    waste, interest, profit, cashEnd: state.cash,
+    waste, interest: 0, profit, cashEnd: state.cash,
     customersPotential: nPot, customersServed, disappointedStock, disappointedPrice, queueLost,
     unitsSold, stockouts, essentialStockouts, expired,
     repBefore, repAfter: state.reputation, repDetails: rep.details,
-    xpGained: 0, levelBefore, levelAfter: state.level,
+    xpGained: 0, levelBefore: state.level, levelAfter: state.level,
     objectivesDone: [], sales,
     eventIds: activeEvents(state, day).map((e) => e.id), weather: weather.icon,
   };
   state.history.push(report);
   if (state.history.length > B.HISTORY_DAYS) state.history.shift();
+  return { report, timeline, opening, essWanted, noWaste: expired.length === 0 };
+}
+
+/**
+ * Journée complète : chaque magasin géré tourne (les autres magasins d'abord, le magasin affiché en
+ * dernier, qui fournit l'animation et le bilan détaillé), puis clôture commune à l'enseigne :
+ * prêt, succursales, totaux, XP, objectifs.
+ */
+export function runDay(state: GameState): DayOutcome {
+  const day = state.day;
+  const levelBefore = state.level;
+  const xpBefore = state.xp;
+  const others: NonNullable<DayReport['shops']> = [];
+  const active = activeShopIndex(state);
+  if (shopCount(state) > 1) {
+    forEachShop(state, (i, entry) => {
+      if (i === active) return;
+      const r = shopDay(state, i).report;
+      entry.last = { day, revenue: r.revenue, profit: r.profit, customers: r.customersServed };
+      others.push({ id: entry.id, manager: entry.manager, revenue: r.revenue, profit: r.profit, customers: r.customersServed });
+    });
+  }
+  const main = shopDay(state, active);
+  const report = main.report;
+  if (state.shops) state.shops.list[active].last = { day, revenue: report.revenue, profit: report.profit, customers: report.customersServed };
+
+  // ── Enseigne ──
+  const interest = payLoan(state);
+  // Succursales : revenu net versé chaque soir.
+  const branchIncome = dailyBranchIncome(state);
+  state.cash = round2(state.cash + branchIncome);
+  const othersRevenue = round2(others.reduce((s, o) => s + o.revenue, 0));
+  const othersProfit = round2(others.reduce((s, o) => s + o.profit, 0));
+  report.interest = interest;
+  report.branchIncome = branchIncome;
+  if (others.length) report.shops = others;
+  report.profit = round2(report.profit - interest + branchIncome + othersProfit);
+
+  state.totals.revenue = round2(state.totals.revenue + report.revenue + othersRevenue);
+  state.totals.profit = round2(state.totals.profit + report.profit);
+  state.totals.customers += report.customersServed + others.reduce((s, o) => s + o.customers, 0);
+  state.totals.waste = round2(state.totals.waste + report.waste);
+  state.totals.bestProfit = Math.max(state.totals.bestProfit, report.profit);
+  state.totals.noWasteStreak = main.noWaste ? (state.totals.noWasteStreak ?? 0) + 1 : 0;
+  state.objectives.essentialStreak = report.essentialStockouts.length === 0 && main.essWanted > 0 ? state.objectives.essentialStreak + 1 : 0;
+
+  // Roue « Expérience ×1,5 » : multiplie l'XP de la journée. Tous les magasins rapportent de l'XP.
+  addXp(state, ((report.revenue + othersRevenue * BALANCE.XP_PER_SHOP_EURO + branchIncome * BALANCE.XP_PER_BRANCH_EURO) * BALANCE.XP_PER_EURO + state.reputation * BALANCE.XP_PER_REP_POINT) * (1 + boostValue(state, 'xp')));
+
+  report.levelBefore = levelBefore;
   report.objectivesDone = evaluateObjectives(state, report);
   report.decorUnlocked = checkDecorUnlocks(state).map((p) => p.id);
   report.xpGained = state.xp - xpBefore;
@@ -231,7 +269,7 @@ export function runDay(state: GameState): DayOutcome {
 
   state.phase = 'report';
   state.lastReport = report;
-  return { report, timeline, opening };
+  return { report, timeline: main.timeline, opening: main.opening };
 }
 
 /** Ventes manquées de la journée : nombre d'articles et chiffre d'affaires perdu (au prix affiché). */
@@ -255,25 +293,40 @@ function summarizeLostSales(state: GameState, day: number, stock: Record<string,
   return { stock: sum(stock), price: sum(price), queue: sum(queue), value: round2(value), top };
 }
 
-/** Passe au matin suivant : livraisons, événements, objectifs, placement automatique. */
+/** Passe au matin suivant : livraisons, événements, objectifs, achats, gérants, placement automatique. */
 export function startNextDay(state: GameState): void {
   state.day++;
   state.phase = 'morning';
   const news: string[] = [];
-  for (const o of receiveDeliveries(state)) {
-    const n = o.lines.reduce((s, l) => s + l.qty, 0);
-    news.push(`🚚 Livraison de ${SUPPLIER_BY_ID[o.supplierId]?.name ?? 'fournisseur'} : ${n} articles reçus.`);
-  }
-  news.push(...expirePromotions(state));
-  news.push(...rollEvents(state, makeRng(state.seed * 13 + state.day * 331)));
+  const eventNews = rollEvents(state, makeRng(state.seed * 13 + state.day * 331));
   refreshSellable(state);
   ensureObjectives(state);
-  const bought = runBuyer(state);
-  if (bought && bought.products) {
-    news.push(`🧑‍💼 Ton responsable des achats a commandé ${bought.products} produit${bought.products > 1 ? 's' : ''} pour ${bought.total.toFixed(2).replace('.', ',')} €${bought.saved >= 1 ? ` (${Math.round(bought.saved)} € économisés en choisissant les meilleurs prix)` : ''}.`);
-  }
-  if (bought && bought.skipped) news.push(`🧑‍💼 ${bought.skipped} produit${bought.skipped > 1 ? 's n’ont' : ' n’a'} pas pu être commandé${bought.skipped > 1 ? 's' : ''} : trésorerie ou place insuffisante.`);
-  if (up(state, 'stocker') > 0) stockerPlacement(state);
+  const active = activeShopIndex(state);
+  const delegated: string[] = [];
+  forEachShop(state, (i, entry) => {
+    const shopNews: string[] = [];
+    for (const o of receiveDeliveries(state)) {
+      const n = o.lines.reduce((s, l) => s + l.qty, 0);
+      shopNews.push(`🚚 Livraison de ${SUPPLIER_BY_ID[o.supplierId]?.name ?? 'fournisseur'} : ${n} articles reçus.`);
+    }
+    shopNews.push(...expirePromotions(state));
+    const bought = runBuyer(state);
+    if (bought && bought.products) {
+      shopNews.push(`🧑‍💼 Ton responsable des achats a commandé ${bought.products} produit${bought.products > 1 ? 's' : ''} pour ${bought.total.toFixed(2).replace('.', ',')} €${bought.saved >= 1 ? ` (${Math.round(bought.saved)} € économisés en choisissant les meilleurs prix)` : ''}.`);
+    }
+    if (bought && bought.skipped) shopNews.push(`🧑‍💼 ${bought.skipped} produit${bought.skipped > 1 ? 's n’ont' : ' n’a'} pas pu être commandé${bought.skipped > 1 ? 's' : ''} : trésorerie ou place insuffisante.`);
+    if (entry.manager) {
+      const m = manageShop(state, entry.manager);
+      delegated.push(entry.id);
+      if (i === active) shopNews.push(`🧑‍💼 Ce magasin est confié à un gérant : il a fixé les prix, rangé les rayons et passé ${m.ordered} commande${m.ordered > 1 ? 's' : ''}.`);
+    }
+    if (up(state, 'stocker') > 0) stockerPlacement(state);
+    // Seules les nouvelles du magasin affiché sont détaillées.
+    if (i === active) news.push(...shopNews);
+  });
+  news.push(...eventNews);
+  const n = delegated.filter((id) => id !== shopList(state)[active].id).length;
+  if (n) news.push(`🏪 Tes gérants s’occupent de ${n} autre${n > 1 ? 's' : ''} magasin${n > 1 ? 's' : ''} ce matin.`);
   if (state.loan) news.push(`🏦 Prêt en cours : ${state.loan.remaining.toFixed(2).replace('.', ',')} € restants.`);
   if (state.cash < BALANCE.LOAN_TRIGGER_CASH && canTakeLoan(state)) news.push('🏦 Caisse à sec : un prêt d’urgence est proposé plus bas sur cette page.');
   state.morningNews = news;

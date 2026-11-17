@@ -58,6 +58,8 @@ export interface DayReport {
   lostSales?: { stock: number; price: number; queue: number; value: number; top: { productId: string; units: number; value: number }[] };
   /** Revenus des succursales ce jour-là. */
   branchIncome?: number;
+  /** Autres magasins gérés : résultat de leur journée (déjà compté dans le bénéfice net). */
+  shops?: { id: string; manager: ShopEntry['manager']; revenue: number; profit: number; customers: number }[];
   profit: number;
   cashEnd: number;
   customersPotential: number;
@@ -89,6 +91,24 @@ export interface Settings { speed: number; sound: boolean; dark: boolean; /** An
 export interface Promo { productId: string; pct: number; startDay: number; endDay: number }
 /** Campagne publicitaire en cours (prospectus, radio…). */
 export interface Campaign { id: string; endDay: number }
+
+/** Champs propres à chaque magasin géré (échangés quand on change de magasin). */
+export const SHOP_KEYS = [
+  'prices', 'stock', 'slots', 'orders', 'cart', 'upgrades', 'promos', 'campaigns',
+  'history', 'salesHistory', 'demandHistory', 'productStats', 'buyer', 'reputation',
+] as const;
+export type ShopKey = (typeof SHOP_KEYS)[number];
+export type ShopData = Pick<GameState, ShopKey>;
+
+export interface ShopEntry {
+  id: string;
+  /** Gérant à qui la gestion est confiée (null : géré par le joueur). */
+  manager: 'junior' | 'confirme' | 'expert' | null;
+  /** Données du magasin quand il n'est pas affiché (null pour le magasin affiché : elles sont dans l'état). */
+  data: ShopData | null;
+  /** Résultat de la dernière journée (affiché dans la liste des magasins). */
+  last?: { day: number; revenue: number; profit: number; customers: number };
+}
 
 export interface GameState {
   version: number;
@@ -140,6 +160,8 @@ export interface GameState {
   wheel?: { lastSpin: number; boosts: { kind: 'traffic' | 'xp' | 'supplier' | 'price' | 'express' | 'rep'; value: number; untilDay: number }[] };
   /** Succursales achetées. */
   branches?: string[];
+  /** Magasins gérés (absent tant qu'on n'a que le magasin principal). `active` = magasin affiché. */
+  shops?: { active: number; list: ShopEntry[] };
   /** Acheteur automatique (amélioration « Responsable des achats »). */
   buyer?: { enabled: boolean; coverDays: number; reserve: number; last?: BuyerReport };
   /** Partie modifiée avec le mode debug (+€ / +XP) : exclue du classement mondial. */

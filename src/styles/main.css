@@ -657,3 +657,17 @@ button, .nav-btn, .chip, .slot, .part-card, .supplier { -webkit-user-select: non
 body.layer-open .app * { animation-play-state: paused !important; }
 body.overlay-open .app { visibility: hidden; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+
+/* ── Magasins gérés ── */
+.shop-chip { cursor: pointer; border: 0; font: inherit; color: inherit; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shop-menu { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 8px; }
+.shop-menu-item { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; padding: 10px 12px; border-radius: 14px; border: 2px solid var(--line); background: var(--card); color: inherit; font: inherit; cursor: pointer; }
+.shop-menu-item.on { border-color: var(--accent); }
+.shop-menu-item > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.shop-emoji, .manager-emoji { font-size: 1.6rem; }
+.shop-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.manager-list { display: grid; gap: 10px; margin-top: 12px; }
+.manager-card { display: flex; gap: 12px; align-items: flex-start; text-align: left; padding: 12px 14px; cursor: pointer; font: inherit; color: inherit; border: 2px solid transparent; }
+.manager-card:hover { border-color: var(--accent); }
+.manager-card > span:last-child { display: flex; flex-direction: column; gap: 4px; }
+@media (max-width: 640px) { .shop-chip { max-width: 150px; } }

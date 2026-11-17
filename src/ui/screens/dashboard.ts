@@ -18,6 +18,7 @@ import { unseenDecor } from './decor';
 import { historyCard } from '../history';
 import { leaderboardCard } from '../leaderboard';
 import { wheelCard } from '../wheel';
+import { delegatedBanner } from '../shops';
 import { economySummary } from '../../systems/market';
 import { dailyBranchIncome } from '../../systems/branches';
 
@@ -96,6 +97,7 @@ export function renderDashboard(state: GameState): string {
     </div>
   </section>
 
+  ${delegatedBanner(state)}
   ${c ? `<section class="card coach">
     <span class="coach-icon">💡</span>
     <div><h3>${c.title}</h3><p>${c.text}</p></div>

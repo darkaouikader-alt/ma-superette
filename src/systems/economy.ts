@@ -8,15 +8,16 @@ import { computeDemand, reputationFactor, weekdayFactor, type DemandBreakdown, t
 import { decorTraffic } from './decor';
 import { boostValue } from './wheel';
 import { basketFactor, marketGrowth } from './market';
+import { currentManager, managerEfficiency, managerSalary } from './shopMeta';
 import { activeEvents, eventModifiers, marketPrice, weatherFor } from './events';
 
 export const weekdayOf = (day: number) => (day - 1) % 7;
 export const up = (state: GameState, id: string) => state.upgrades[id] ?? 0;
 export const round2 = (v: number) => Math.round(v * 100) / 100;
 
-/** Multiplicateur d'affluence structurel (niveau + enseigne + publicité + croissance du marché). */
+/** Multiplicateur d'affluence structurel (niveau + enseigne + publicité + croissance du marché + gérant). */
 export function trafficMultiplier(state: GameState): number {
-  return levelDef(state.level).traffic * marketGrowth(state) * (1 + up(state, 'sign') * BALANCE.SIGN_TRAFFIC + up(state, 'billboard') * BALANCE.BILLBOARD_TRAFFIC);
+  return levelDef(state.level).traffic * marketGrowth(state) * managerEfficiency(state) * (1 + up(state, 'sign') * BALANCE.SIGN_TRAFFIC + up(state, 'billboard') * BALANCE.BILLBOARD_TRAFFIC);
 }
 
 // ── Promotions (lecture seule ; les actions sont dans promotions.ts) ──
@@ -120,7 +121,8 @@ export function dailyCharges(state: GameState): Charges {
     BALANCE.ELECTRICITY_BASE + state.slots.length * BALANCE.ELECTRICITY_PER_SLOT +
     up(state, 'fridge') * BALANCE.ELECTRICITY_PER_FRIDGE + up(state, 'freezer') * BALANCE.ELECTRICITY_PER_FREEZER,
   );
-  const salaries = UPGRADES.reduce((s, u) => s + (u.salary ?? 0) * up(state, u.id), 0);
+  const manager = currentManager(state);
+  const salaries = UPGRADES.reduce((s, u) => s + (u.salary ?? 0) * up(state, u.id), 0) + (manager ? managerSalary(manager, state.level) : 0);
   return { rent, electricity, salaries, total: round2(rent + electricity + salaries) };
 }
 

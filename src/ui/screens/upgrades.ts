@@ -16,6 +16,7 @@ import { BRANCHES, type BranchDef } from '../../data/branches';
 import { levelDef } from '../../data/levels';
 import { branchIncomeOf, buyBranch, dailyBranchIncome, ownedBranches, ownsBranch } from '../../systems/branches';
 import { confetti } from '../fx';
+import { shopsSection } from '../shops';
 
 function upgradeCard(state: GameState, u: UpgradeDef): string {
   const lvl = up(state, u.id);
@@ -62,11 +63,12 @@ export function renderUpgrades(state: GameState): string {
   const groups = [...new Set(UPGRADES.map((u) => u.group))];
   return `
   <div class="screen-head">
-    <div><h1>🛠️ Améliorations</h1><p class="muted">Investis tes bénéfices pour agrandir le magasin, embaucher et ouvrir de nouveaux rayons.</p></div>
+    <div><h1>🛠️ Améliorations</h1><p class="muted">Investis tes bénéfices pour agrandir le magasin affiché, embaucher, ouvrir de nouveaux rayons et de nouveaux magasins.</p></div>
   </div>
   ${groups.map((g) => `<h2 class="group-title">${g}</h2><section class="upgrade-grid">${UPGRADES.filter((u) => u.group === g).map((u) => upgradeCard(state, u)).join('')}</section>`).join('')}
   <h2 class="group-title">Licences de vente</h2>
   <section class="upgrade-grid">${CATEGORIES.filter((c) => c.licence).map((c) => licenceCard(state, c.id)).join('')}</section>
+  ${shopsSection(state)}
   <h2 class="group-title">🏢 Succursales</h2>
   <p class="muted small group-note">Ouvre d’autres magasins avec ta trésorerie : chacun te verse un revenu chaque soir (plus ta réputation est haute, plus il rapporte) et te fait gagner de l’expérience.${ownedBranches(state).length ? ` Aujourd’hui : <b class="pos">+${money0(dailyBranchIncome(state))} par jour</b>.` : ''}</p>
   <section class="upgrade-grid">${BRANCHES.map((b) => branchCard(state, b)).join('')}</section>`;

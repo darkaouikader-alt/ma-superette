@@ -10,6 +10,7 @@ import { storefrontSvg } from './storefront';
 import type { DayReport } from '../state/types';
 import { levelNews, xpProgress } from '../systems/progression';
 import { startNextDay } from '../systems/simulation';
+import { activeShop, shopCount, shopDef } from '../systems/shops';
 import { on } from './actions';
 import { sfx } from './audio';
 import { badge, catPastille, esc, gauge, money, money0, num, num1, pastille, signed } from './dom';
@@ -48,7 +49,7 @@ function reportHtml(r: DayReport): string {
   const pills = (ids: string[]) => ids.map((id) => PRODUCT_BY_ID[id] ? pastille(PRODUCT_BY_ID[id], 'sm') : '').join('');
   return `<div class="overlay report"><div class="report-card">
     <header class="rp-head">
-      <div><span class="hero-level">Bilan de fin de journée</span><h2>Jour ${r.day} · ${WEEKDAYS[(r.day - 1) % 7]} ${r.weather}</h2>
+      <div><span class="hero-level">Bilan de fin de journée</span><h2>Jour ${r.day} · ${WEEKDAYS[(r.day - 1) % 7]} ${r.weather}</h2>${shopCount(state) > 1 ? `<p class="muted small">${shopDef(activeShop(state).id).emoji} Détail : ${esc(shopDef(activeShop(state).id).name)} · bénéfice net de toute l’enseigne</p>` : ''}
         ${r.eventIds.map((id) => EVENT_BY_ID[id] ? badge(`${EVENT_BY_ID[id].emoji} ${EVENT_BY_ID[id].name}`, 'purple') : '').join(' ')}</div>
       <div class="rp-profit ${r.profit >= 0 ? 'pos' : 'neg'}"><span>${mood} Bénéfice du jour</span><b data-count="${r.profit}" data-fmt="smoney">${signed(r.profit, money)}</b></div>
     </header>
@@ -64,6 +65,7 @@ function reportHtml(r: DayReport): string {
         ${r.waste ? line('Produits périmés jetés', r.waste, 'bad', '−') : ''}
         ${r.interest ? line('Intérêts du prêt', r.interest, 'bad', '−') : ''}
         ${r.branchIncome ? line('🏢 Revenus des succursales', r.branchIncome, 'pos-line', '+') : ''}
+        ${r.shops?.length ? r.shops.map((o) => line(`${shopDef(o.id).emoji} ${esc(shopDef(o.id).name)}${o.manager ? ' (gérant)' : ''}`, o.profit, o.profit >= 0 ? 'pos-line' : 'bad', o.profit >= 0 ? '+' : '')).join('') : ''}
         ${line('Bénéfice net', r.profit, `total ${r.profit >= 0 ? 'pos' : 'neg'}`, '=')}
         <div class="rp-line cash"><span>🏦 Trésorerie ce soir</span><b>${money(r.cashEnd)}</b></div>
       </section>

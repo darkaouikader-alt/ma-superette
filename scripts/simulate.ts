@@ -14,6 +14,8 @@ import { DECOR_PARTS, DECOR_SLOTS } from '../src/data/decor';
 import { BRANCHES } from '../src/data/branches';
 import { buyBranch, dailyBranchIncome, ownsBranch } from '../src/systems/branches';
 import { marketGrowth } from '../src/systems/market';
+import { SHOPS } from '../src/data/shops';
+import { buyShop, delegateShop, ownsShop, shopCount } from '../src/systems/shops';
 import { canEquip, charmSummary, checkDecorUnlocks, equipPart, partCharm } from '../src/systems/decor';
 
 const days = Number(process.argv[2] ?? 10);
@@ -44,6 +46,14 @@ for (let i = 0; i < days; i++) {
   }
   // Succursales : dès que la trésorerie le permet (en gardant la réserve)
   for (const b of BRANCHES) if (!ownsBranch(state, b.id) && state.level >= b.minLevel && state.cash > b.cost + reserve) buyBranch(state, b.id);
+  // Magasins gérés (NO_SHOPS=1 pour les ignorer) : achetés puis confiés à un directeur expert.
+  if (!process.env.NO_SHOPS) {
+    for (const d of SHOPS) {
+      if (!ownsShop(state, d.id) && state.level >= d.minLevel && state.cash > d.cost * 2 + reserve && buyShop(state, d.id) === null) {
+        delegateShop(state, shopCount(state) - 1, 'expert');
+      }
+    }
+  }
   // 3. Nouveaux produits : un premier lot pour tout produit vendable jamais stocké
   if (mode !== 'lazy') {
     autoReorder(state, 'all');
@@ -95,5 +105,6 @@ for (let i = 0; i < days; i++) {
   startNextDay(state);
 }
 console.log(`Façade : ${state.decor.owned.length}/${DECOR_PARTS.length} éléments gagnés · charme ${charmSummary(state).total} · +${(charmSummary(state).traffic * 100).toFixed(1)} % clients · +${charmSummary(state).rep} rép/jour`);
+console.log(`Magasins gérés : ${shopCount(state)} · ${(state.shops?.list ?? []).map((e) => `${e.id} ${e.last ? Math.round(e.last.profit) : 0} €`).join(' · ')}`);
 console.log(`Marché : +${Math.round((marketGrowth(state) - 1) * 100)} % · succursales ${state.branches?.length ?? 0}/${BRANCHES.length} (+${dailyBranchIncome(state).toFixed(0)} €/jour)`);
 console.log(`\nTotal : CA ${state.totals.revenue.toFixed(0)} € · bénéfice ${state.totals.profit.toFixed(0)} € · pertes ${state.totals.waste.toFixed(0)} € · objectifs longs validés ${state.objectives.longDone.length} · final ${state.finalDone}`);

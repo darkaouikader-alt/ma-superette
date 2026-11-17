@@ -5,7 +5,7 @@ Document de reprise du projet : où en est le jeu, comment il est construit, ce 
 - **Jeu en ligne** : https://darkaouikader-alt.github.io/ma-superette/
 - **Code** : https://github.com/darkaouikader-alt/ma-superette (branche `main`)
 - **Aperçu Claude** (sans compte en ligne) : https://claude.ai/artifact/3uZZq2hiX4HSQi8omiUQCU
-- **État** : 84 tests au vert, publication automatique réussie (dernier commit : voir `git log`).
+- **État** : 92 tests au vert, publication automatique réussie (dernier commit : voir `git log`).
 
 ## 1. Objectif
 
@@ -19,7 +19,7 @@ fidélise sur la durée (compte en ligne, classement, roue, longue progression).
 ```bash
 npm install
 npm run dev          # http://localhost:5173
-npm test             # 84 tests (Vitest)
+npm test             # 92 tests (Vitest)
 npm run build        # vérification TypeScript + build dans dist/
 npm run simulate -- 80   # bot d'équilibrage : 80 jours sans interface
 ```
@@ -38,7 +38,7 @@ npm run simulate -- 80   # bot d'équilibrage : 80 jours sans interface
 | `src/state/` | `types.ts` (modèle), `store.ts` (état + nouvelle partie), `save.ts` (localStorage, versionné) |
 | `src/cloud/` | Firebase : `config.ts` (identifiants), `sync.ts` (synchronisation), `social.ts` (nom de joueur, classement) |
 | `src/ui/` | Coquille (`app.ts`), journée animée, bilan, vitrine SVG, composants ; un fichier par écran dans `screens/` |
-| `tests/` | 14 fichiers de tests |
+| `tests/` | 15 fichiers de tests |
 | `public/` | PWA : `manifest.webmanifest`, `sw.js` (hors ligne), icônes |
 | `.github/workflows/deploy.yml` | Tests, build et publication sur GitHub Pages à chaque push sur `main` |
 
@@ -75,6 +75,19 @@ npm run simulate -- 80   # bot d'équilibrage : 80 jours sans interface
     devenaient le goulot en fin de partie.
   - Bot sur 600 jours : niveau 14 au jour 112, niveau 20 au jour 436 ; 1 M€ de trésorerie vers le
     jour 190, plus de 20 M€ vers le jour 430, plus de 100 M€ ensuite.
+- **Magasins gérés** (`src/data/shops.ts`, `src/systems/shops.ts`, `src/ui/shops.ts`) : 6 vrais
+  magasins à acheter (niveaux 6 à 19), en plus des succursales passives qui restent.
+  - Les champs propres à un magasin (`SHOP_KEYS` dans `types.ts` : rayons, stock, prix, commandes,
+    équipement, réputation…) sont dans l'état pour le magasin affiché ; ceux des autres sont rangés
+    dans `state.shops.list[i].data`. Changer de magasin (`switchShop`) les échange : écrans,
+    simulation et fournisseurs travaillent toujours sur « le magasin courant ».
+  - Communs à l'enseigne : trésorerie, niveau, XP, licences, façade, objectifs, prêt.
+  - `runDay` fait tourner chaque magasin (`shopDay`), puis la clôture de l'enseigne ; `startNextDay`
+    livre, achète et gère chaque magasin. Les autres magasins comptent pour 50 % de l'XP.
+  - Gérant possible dès 2 magasins, jamais sur tous : débutant (82 %, sans équipement),
+    confirmée (92 %, équipe et froid), expert (100 %, tout l'équipement). Salaire × affluence du
+    niveau. Le gérant garde 10 % de la caisse (min. 500 €) en réserve.
+  - Bot (`NO_SHOPS=1` pour les ignorer) : niveau 20 au jour 329 avec magasins, 436 sans.
 - **Performances** : plus de flou d'arrière-plan ; animations décoratives coupées par défaut sur écran
   tactile (réglage dans Paramètres) ; décor en pause sous les fenêtres. Au repos, le travail du
   navigateur passe de 101 à 5 ms par seconde.
