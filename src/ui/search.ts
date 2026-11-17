@@ -34,7 +34,7 @@ export function rowVisible(key: string, catOk: boolean, query: string): boolean 
 /** Attributs d'une ligne recherchable. */
 export function searchAttrs(scope: SearchScope, p: Product, catOk = true): string {
   const key = searchKey(p);
-  return `data-search="${esc(key)}" data-cat-ok="${catOk ? 1 : 0}" ${rowVisible(key, catOk, currentSearch(scope)) ? '' : 'hidden'}`;
+  return `data-search="${esc(key)}" data-search-scope="${scope}" data-cat-ok="${catOk ? 1 : 0}" ${rowVisible(key, catOk, currentSearch(scope)) ? '' : 'hidden'}`;
 }
 
 export function searchBox(scope: SearchScope, placeholder: string): string {
@@ -57,7 +57,8 @@ export function applySearch(scope: SearchScope): void {
   const root = scope === 'picker' ? document.querySelector('.modal') : document.getElementById('screen');
   if (!root) return;
   let shown = 0;
-  root.querySelectorAll<HTMLElement>('[data-search]').forEach((el) => {
+  // Seulement les lignes de cette recherche (un écran peut en avoir plusieurs, ex. Prix / Promotions).
+  root.querySelectorAll<HTMLElement>(`[data-search][data-search-scope="${scope}"]`).forEach((el) => {
     const visible = rowVisible(el.dataset.search ?? '', el.dataset.catOk !== '0', q);
     el.hidden = !visible;
     if (visible) shown++;

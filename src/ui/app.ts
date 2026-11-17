@@ -132,7 +132,9 @@ function render(): void {
   ui.entering = false;
   if (ui.screen === 'decor') queueMicrotask(() => markSlotSeen(state));
   // Recherche en cours : messages « aucun résultat » et suggestions à jour après chaque rendu.
-  if (ui.screen === 'orders' || ui.screen === 'stock' || ui.screen === 'prices') applySearch(ui.screen);
+  // (Écran Prix : la recherche de l'onglet affiché, Prix ou Promotions, chacun garde la sienne.)
+  if (ui.screen === 'orders' || ui.screen === 'stock') applySearch(ui.screen);
+  if (ui.screen === 'prices') applySearch(ui.priceTab === 'promos' ? 'promos' : 'prices');
   const cashEl = $('#top-cash');
   if (cashEl && shownCash !== null && shownCash !== state.cash) animateNumber(cashEl, shownCash, state.cash, money, 600);
   shownCash = state.cash;
