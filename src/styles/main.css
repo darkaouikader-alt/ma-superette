@@ -262,6 +262,15 @@ th.sortable { cursor: pointer; user-select: none; } th.sortable:hover, th.sorted
 .wheel-odds { margin-top: 12px; text-align: left; }
 .wheel-odds ul { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem; }
 .wheel-odds li { display: flex; justify-content: space-between; gap: 10px; }
+.lost-box { margin: 10px 0 4px; padding: 10px 12px; border-radius: 14px; background: var(--red-soft); display: flex; flex-direction: column; gap: 4px; }
+.lost-box.ok { background: var(--accent-soft); color: var(--accent-ink); }
+.lost-head { display: flex; justify-content: space-between; align-items: baseline; font-weight: 800; }
+.lost-head b { font-family: var(--font-head); font-size: 1.1rem; }
+.lost-parts { list-style: none; padding: 0; margin: 2px 0 0; display: flex; flex-direction: column; gap: 3px; font-size: 0.88rem; }
+.lost-parts li { display: grid; grid-template-columns: 1fr auto; gap: 0 8px; }
+.lost-parts li .muted { grid-column: 1 / -1; margin-top: -2px; }
+.lost-top { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.lost-top span { background: var(--card); border-radius: 99px; padding: 2px 8px; font-size: 0.8rem; font-weight: 700; }
 .conflict-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
 .conflict-card { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 16px; background: var(--grey-soft); }
 .promo-summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }

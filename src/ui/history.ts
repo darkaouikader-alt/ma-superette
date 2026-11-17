@@ -8,10 +8,12 @@ import { store } from '../state/store';
 import { on } from './actions';
 import { badge, esc, money, money0, num, num1, pastille, signed } from './dom';
 import { openModal } from './modal';
+import { lostSalesBlock } from './report';
 
 const DAYS_SHOWN = 7;
 const dayName = (d: number) => WEEKDAYS[(d - 1) % 7];
 const disappointed = (r: DayReport) => r.disappointedStock + r.disappointedPrice + r.queueLost;
+const lostCount = (r: DayReport) => (r.lostSales ? r.lostSales.stock + r.lostSales.price + r.lostSales.queue : 0);
 const charges = (r: DayReport) => r.rent + r.electricity + r.salaries + r.interest;
 
 interface Totals { revenue: number; profit: number; served: number; disappointed: number; waste: number; days: number }
@@ -69,7 +71,7 @@ export function historyCard(state: GameState): string {
           <span class="day-name"><b>J${r.day}</b> <span class="muted">${dayName(r.day).slice(0, 3)}.</span> ${r.weather}${r === best && list.length > 1 && r.profit > 0 ? ' <span class="badge green">Meilleur jour</span>' : ''}</span>
           <span data-label="CA">${money0(r.revenue)}</span>
           <span data-label="Bénéfice"><b class="${r.profit >= 0 ? 'pos' : 'neg'}">${signed(r.profit, money0)}</b></span>
-          <span data-label="Clients">${num(r.customersServed)}${disappointed(r) ? ` <span class="warn small">(${num(disappointed(r))} déçus)</span>` : ''}</span>
+          <span data-label="Clients">${num(r.customersServed)}${disappointed(r) ? ` <span class="warn small">(${num(disappointed(r))} déçus)</span>` : ''}${lostCount(r) ? `<br><span class="small neg" title="Articles voulus mais non vendus">📉 ${num(lostCount(r))} ventes manquées</span>` : ''}</span>
           <span data-label="Réputation">${num1(r.repAfter)} <span class="small ${rep >= 0 ? 'pos' : 'neg'}">${signed(rep)}</span></span>
           <span class="day-highlights">${highlights(r)}</span>
         </button>`;
@@ -103,6 +105,7 @@ function dayDetail(r: DayReport): string {
         ${line('Déçus (prix)', num(r.disappointedPrice), r.disappointedPrice ? 'bad' : '')}
         ${r.queueLost ? line('Partis (file d’attente)', num(r.queueLost), 'bad') : ''}
         ${line('Articles vendus', num(r.unitsSold))}
+        ${lostSalesBlock(r)}
         <h4>🏆 Meilleures ventes</h4>
         ${top.length ? `<ul class="rp-top">${top.map(([id, s]) => (PRODUCT_BY_ID[id] ? `<li>${pastille(PRODUCT_BY_ID[id], 'sm')}<span>${esc(PRODUCT_BY_ID[id].name)} <span class="muted">× ${s.units}</span></span><b>${money0(s.revenue)}</b></li>` : '')).join('')}</ul>` : '<p class="muted small">Aucune vente.</p>'}
         ${r.stockouts.length ? `<h4>🚫 En rupture</h4><div class="rp-pills">${pills(r.stockouts.slice(0, 14))}</div>` : ''}

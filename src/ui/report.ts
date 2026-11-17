@@ -20,6 +20,25 @@ import { ui } from './uiState';
 const line = (label: string, value: number, cls = '', sign: '' | '−' | '=' | '+' = '') =>
   `<div class="rp-line ${cls}"><span>${sign ? `<i>${sign}</i> ` : ''}${label}</span><b data-count="${value}" data-fmt="money">${money(value)}</b></div>`;
 
+/** Bloc « Ventes manquées » du bilan (aussi utilisé dans l'historique). */
+export function lostSalesBlock(r: DayReport): string {
+  const l = r.lostSales;
+  if (!l) return '';
+  const total = l.stock + l.price + l.queue;
+  if (!total) return '<div class="lost-box ok">✅ <b>Aucune vente manquée</b> aujourd’hui.</div>';
+  const part = (n: number, label: string, tip: string) => (n ? `<li><span>${label}</span><b>${num(n)}</b><span class="small muted">${tip}</span></li>` : '');
+  return `<div class="lost-box">
+    <div class="lost-head"><span>📉 Ventes manquées</span><b class="neg">${num(total)} article${total > 1 ? 's' : ''}</b></div>
+    <p class="small">≈ <b class="neg">${money0(l.value)}</b> de chiffre d’affaires perdu</p>
+    <ul class="lost-parts">
+      ${part(l.stock, '🚫 Rupture en rayon', 'commande ou remplis tes rayons')}
+      ${part(l.price, '💸 Prix trop élevé', 'baisse un peu tes prix')}
+      ${part(l.queue, '⏳ File d’attente', 'embauche un caissier')}
+    </ul>
+    ${l.top.length ? `<div class="lost-top">${l.top.map((t) => (PRODUCT_BY_ID[t.productId] ? `<span title="${esc(PRODUCT_BY_ID[t.productId].name)} : ${t.units} non vendus (≈ ${money0(t.value)})">${PRODUCT_BY_ID[t.productId].emoji} ×${num(t.units)}</span>` : '')).join('')}</div>` : ''}
+  </div>`;
+}
+
 function reportHtml(r: DayReport): string {
   const state = store.state;
   const top = Object.entries(r.sales).sort((a, b) => b[1].revenue - a[1].revenue).slice(0, 5);
@@ -57,6 +76,7 @@ function reportHtml(r: DayReport): string {
           ${r.queueLost ? `<div><b class="neg" data-count="${r.queueLost}">${r.queueLost}</b><span>partis (file d'attente)</span></div>` : ''}
         </div>
         <p class="muted small">${num(r.unitsSold)} articles vendus à ${num(r.customersPotential)} visiteurs potentiels.</p>
+        ${lostSalesBlock(r)}
         <h4>🏆 Meilleures ventes</h4>
         ${top.length ? `<ul class="rp-top">${top.map(([id, s]) => `<li>${pastille(PRODUCT_BY_ID[id], 'sm')}<span>${esc(PRODUCT_BY_ID[id].name)} <span class="muted">× ${s.units}</span></span><b>${money0(s.revenue)}</b></li>`).join('')}</ul>` : '<p class="muted">Aucune vente aujourd’hui…</p>'}
         ${r.stockouts.length ? `<h4>🚫 Produits en rupture ${badge(String(r.stockouts.length), 'red')}</h4><div class="rp-pills">${pills(r.stockouts.slice(0, 16))}</div>

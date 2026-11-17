@@ -54,6 +54,8 @@ export interface DayReport {
   salaries: number;
   waste: number;
   interest: number;
+  /** Ventes manquées : articles voulus mais non vendus (rupture, prix trop élevé, file d'attente). */
+  lostSales?: { stock: number; price: number; queue: number; value: number; top: { productId: string; units: number; value: number }[] };
   /** Revenus des succursales ce jour-là. */
   branchIncome?: number;
   profit: number;

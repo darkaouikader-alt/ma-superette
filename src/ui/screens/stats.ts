@@ -25,18 +25,19 @@ export function renderStats(state: GameState): string {
 
   let body = '';
   if (tab === 'days') {
-    body = `<table class="table"><thead><tr><th>Jour</th><th class="num">Clients</th><th class="num">Déçus</th><th class="num">CA</th><th class="num">Marge brute</th><th class="num">Charges</th><th class="num">Pertes</th><th class="num">Bénéfice</th><th class="num">Réputation</th><th>Événement</th></tr></thead>
+    body = `<table class="table"><thead><tr><th>Jour</th><th class="num">Clients</th><th class="num">Déçus</th><th class="num">Ventes manquées</th><th class="num">CA</th><th class="num">Marge brute</th><th class="num">Charges</th><th class="num">Pertes</th><th class="num">Bénéfice</th><th class="num">Réputation</th><th>Événement</th></tr></thead>
       <tbody>${state.history.slice().reverse().map((h) => `<tr>
         <td><b>J${h.day}</b> <span class="muted small">${WEEKDAYS[(h.day - 1) % 7].slice(0, 3)}.</span> ${h.weather}</td>
         <td class="num">${num(h.customersServed)}</td>
         <td class="num">${h.disappointedStock + h.disappointedPrice + h.queueLost ? `<span class="warn">${num(h.disappointedStock + h.disappointedPrice + h.queueLost)}</span>` : '0'}</td>
+        <td class="num">${h.lostSales ? (h.lostSales.stock + h.lostSales.price + h.lostSales.queue ? `<span class="neg" title="≈ ${money0(h.lostSales.value)} perdus">${num(h.lostSales.stock + h.lostSales.price + h.lostSales.queue)}</span>` : '0') : '—'}</td>
         <td class="num">${money0(h.revenue)}</td><td class="num">${money0(h.revenue - h.cogs)}</td>
         <td class="num">${money0(h.rent + h.electricity + h.salaries + h.interest)}</td>
         <td class="num">${h.waste ? `<span class="neg">${money0(h.waste)}</span>` : '—'}</td>
         <td class="num"><b class="${h.profit >= 0 ? 'pos' : 'neg'}">${signed(h.profit, money0)}</b></td>
         <td class="num">${num1(h.repAfter)} <span class="small ${h.repAfter >= h.repBefore ? 'pos' : 'neg'}">(${signed(h.repAfter - h.repBefore)})</span></td>
         <td>${h.eventIds.map((id) => EVENT_BY_ID[id] ? `${EVENT_BY_ID[id].emoji} ${EVENT_BY_ID[id].name}` : '').join(', ')}</td>
-      </tr>`).join('') || '<tr><td colspan="10" class="muted center">Aucune journée terminée pour l’instant.</td></tr>'}</tbody></table>`;
+      </tr>`).join('') || '<tr><td colspan="11" class="muted center">Aucune journée terminée pour l’instant.</td></tr>'}</tbody></table>`;
   } else if (tab === 'best') {
     body = `<table class="table"><thead><tr><th>#</th><th>Produit</th><th class="num">Unités vendues</th><th class="num">CA cumulé</th><th class="num">Marge cumulée</th><th>Part</th></tr></thead>
       <tbody>${best.map((b, i) => `<tr><td>${i + 1}</td><td><div class="prod-cell">${pastille(b.p, 'sm')}<b>${esc(b.p.name)}</b></div></td>

@@ -72,6 +72,9 @@ export function runDay(state: GameState): DayOutcome {
 
   // ── Paniers ──
   interface Item { p: Product; ok: boolean }
+  /** Ventes manquées : articles voulus mais non vendus, par raison. */
+  const queueUnits: Record<string, number> = {};
+  const refusedUnits: Record<string, number> = {};
   const baskets: Item[][] = Array.from({ length: served }, () => []);
   const prods = demandProducts(state);
   const inRayon = assortment(state);
@@ -85,7 +88,7 @@ export function runDay(state: GameState): DayOutcome {
     const keep = d.total >= d.neutral ? 1 : d.neutral > 0 ? d.total / d.neutral : 0;
     for (let u = 0; u < wants; u++) {
       const c = Math.floor(rng() * nPot);
-      if (c >= served) continue; // client reparti à cause de la file
+      if (c >= served) { queueUnits[p.id] = (queueUnits[p.id] ?? 0) + 1; continue; } // client reparti à cause de la file
       baskets[c].push({ p, ok: keep >= 1 || rng() < keep });
     }
     if (inRayon.has(p.id)) {
@@ -118,7 +121,7 @@ export function runDay(state: GameState): DayOutcome {
     let bought = 0, missEss = false, missAny = false;
     for (const it of basket) {
       const pid = it.p.id;
-      if (!it.ok) { if (!ev.refused.includes(pid)) ev.refused.push(pid); continue; }
+      if (!it.ok) { refusedUnits[pid] = (refusedUnits[pid] ?? 0) + 1; if (!ev.refused.includes(pid)) ev.refused.push(pid); continue; }
       if (it.p.essential) essWanted++; else otherWanted++;
       const cost = sellFromShelf(state, pid);
       if (cost === null) {
@@ -159,6 +162,7 @@ export function runDay(state: GameState): DayOutcome {
   const profit = round2(revenue - cogs - charges.total - waste - interest + branchIncome);
 
   const stockouts = Object.keys(missedUnits);
+  const lostSales = summarizeLostSales(state, day, missedUnits, refusedUnits, queueUnits);
   const essentialStockouts = stockouts.filter((id) => PRODUCT_BY_ID[id]?.essential);
 
   const decorCharm = charmSummary(state);
@@ -207,7 +211,7 @@ export function runDay(state: GameState): DayOutcome {
   addXp(state, ((revenue + branchIncome * B.XP_PER_BRANCH_EURO) * B.XP_PER_EURO + state.reputation * B.XP_PER_REP_POINT) * (1 + boostValue(state, 'xp')));
 
   const report: DayReport = {
-    day, revenue, cogs, branchIncome,
+    day, revenue, cogs, branchIncome, lostSales,
     rent: charges.rent, electricity: charges.electricity, salaries: charges.salaries,
     waste, interest, profit, cashEnd: state.cash,
     customersPotential: nPot, customersServed, disappointedStock, disappointedPrice, queueLost,
@@ -228,6 +232,27 @@ export function runDay(state: GameState): DayOutcome {
   state.phase = 'report';
   state.lastReport = report;
   return { report, timeline, opening };
+}
+
+/** Ventes manquées de la journée : nombre d'articles et chiffre d'affaires perdu (au prix affiché). */
+function summarizeLostSales(state: GameState, day: number, stock: Record<string, number>, price: Record<string, number>, queue: Record<string, number>): NonNullable<DayReport['lostSales']> {
+  const sum = (m: Record<string, number>) => Object.values(m).reduce((s, n) => s + n, 0);
+  const per = new Map<string, { units: number; value: number }>();
+  let value = 0;
+  for (const m of [stock, price, queue]) {
+    for (const [pid, n] of Object.entries(m)) {
+      const p = PRODUCT_BY_ID[pid];
+      if (!p) continue;
+      const v = n * salePrice(state, p, day);
+      value += v;
+      const e = per.get(pid) ?? { units: 0, value: 0 };
+      e.units += n; e.value += v;
+      per.set(pid, e);
+    }
+  }
+  const top = [...per.entries()].sort((a, b) => b[1].value - a[1].value).slice(0, 5)
+    .map(([productId, e]) => ({ productId, units: e.units, value: round2(e.value) }));
+  return { stock: sum(stock), price: sum(price), queue: sum(queue), value: round2(value), top };
 }
 
 /** Passe au matin suivant : livraisons, événements, objectifs, placement automatique. */
