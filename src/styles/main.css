@@ -256,6 +256,13 @@ th.sortable { cursor: pointer; user-select: none; } th.sortable:hover, th.sorted
 .picker-item { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: center; text-align: left; border: 1.5px solid var(--line); background: var(--card); border-radius: 14px; padding: 8px 10px; cursor: pointer; transition: border-color 0.15s, transform 0.12s; }
 .picker-item .pastille { grid-row: span 2; } .picker-item:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-1px); } .picker-item.on { border-color: var(--accent); background: var(--accent-soft); }
 .picker-item:disabled { opacity: 0.45; cursor: not-allowed; } .picker-name { font-weight: 800; }
+.picker-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+.picker-item > .picker-placed, .picker-item > .picker-todo { grid-column: 1 / -1; justify-self: start; font-size: 0.74rem; font-weight: 800; padding: 2px 9px; border-radius: 99px; margin-top: 4px; }
+.picker-placed { background: var(--accent-soft); color: var(--accent-ink); }
+.picker-todo { background: var(--orange-soft); color: var(--orange); }
+.picker-item.placed { background: var(--grey-soft); border-style: dashed; }
+.picker-item.placed .pastille { opacity: 0.7; }
+.picker-item.todo { border-color: color-mix(in srgb, var(--orange) 45%, var(--line)); }
 
 /* ── Commandes ── */
 .orders-grid { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }

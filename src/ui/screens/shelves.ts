@@ -1,7 +1,7 @@
 // Écran 2 : rayons (grille visuelle des emplacements).
 import { CATEGORIES, CATEGORY_BY_ID } from '../../data/categories';
 import { PRODUCT_BY_ID } from '../../data/products';
-import type { GameState } from '../../state/types';
+import type { GameState, Product } from '../../state/types';
 import { store } from '../../state/store';
 import { up } from '../../systems/economy';
 import { sellableProducts } from '../../systems/progression';
@@ -10,7 +10,7 @@ import { on } from '../actions';
 import { productBadges } from '../alerts';
 import { sfx } from '../audio';
 import { badge, esc, gauge, num, pastille } from '../dom';
-import { closeModal, openModal } from '../modal';
+import { closeModal, openModal, updateModalBody } from '../modal';
 import { toast } from '../toast';
 import { ui } from '../uiState';
 
@@ -62,21 +62,51 @@ export function renderShelves(state: GameState): string {
   <section class="slot-grid">${state.slots.map((_, i) => slotCard(state, i)).join('')}</section>`;
 }
 
+type PickerFilter = 'all' | 'todo' | 'placed';
+
 function pickerBody(state: GameState, slotIndex: number): string {
   const current = state.slots[slotIndex]?.productId;
-  const prods = sellableProducts(state);
-  const groups = CATEGORIES.map((c) => ({ c, list: prods.filter((p) => p.cat === c.id) })).filter((g) => g.list.length);
+  // Emplacements occupés par chaque produit (sans compter celui qu'on modifie)
+  const placedIn = new Map<string, number[]>();
+  state.slots.forEach((s, i) => {
+    if (s.productId && i !== slotIndex) placedIn.set(s.productId, [...(placedIn.get(s.productId) ?? []), i + 1]);
+  });
+  const all = sellableProducts(state);
+  const filter = ui.pickerFilter as PickerFilter;
+  const todoCount = all.filter((p) => !placedIn.has(p.id) && totalQty(state, p.id) > 0).length;
+  const placedCount = all.filter((p) => placedIn.has(p.id)).length;
+  const keep = (p: Product) => filter === 'all' || (filter === 'placed' ? placedIn.has(p.id) : !placedIn.has(p.id));
+  // Ordre : en stock et pas encore en rayon → pas en rayon sans stock → déjà en rayon
+  const rank = (p: Product) => (placedIn.has(p.id) ? 2 : totalQty(state, p.id) > 0 ? 0 : 1);
+  const groups = CATEGORIES.map((c) => ({ c, list: all.filter((p) => p.cat === c.id && keep(p)).sort((a, b) => rank(a) - rank(b)) })).filter((g) => g.list.length);
+  const chip = (id: PickerFilter, label: string) => `<button class="chip ${filter === id ? 'on' : ''}" data-act="picker-filter" data-arg="${id}">${label}</button>`;
   return `
-    ${current ? `<button class="btn danger sm" data-act="slot-assign" data-arg="">🗑️ Libérer cet emplacement</button>` : ''}
+    <div class="picker-head">
+      <div class="chips">
+        ${chip('all', `Tous (${all.length})`)}
+        ${chip('todo', `Pas encore en rayon (${all.length - placedCount})`)}
+        ${chip('placed', `✓ Déjà en rayon (${placedCount})`)}
+      </div>
+      ${current ? `<button class="btn danger sm" data-act="slot-assign" data-arg="">🗑️ Libérer cet emplacement</button>` : ''}
+    </div>
+    ${todoCount ? `<p class="small muted">💡 ${num(todoCount)} produit${todoCount > 1 ? 's' : ''} en stock ${todoCount > 1 ? 'ne sont' : 'n’est'} pas encore en rayon : ${todoCount > 1 ? 'ils sont affichés' : 'il est affiché'} en premier.</p>` : ''}
     ${groups.map((g) => `<h4 class="picker-cat">${g.c.emoji} ${g.c.name}</h4><div class="picker-grid">
       ${g.list.map((p) => {
         const err = canAssign(state, slotIndex, p.id);
         const stock = totalQty(state, p.id);
-        return `<button class="picker-item ${p.id === current ? 'on' : ''}" data-act="slot-assign" data-arg="${p.id}" ${err ? `disabled title="${esc(err)}"` : ''}>
+        const where = placedIn.get(p.id);
+        return `<button class="picker-item ${p.id === current ? 'on' : ''} ${where ? 'placed' : stock ? 'todo' : ''}" data-act="slot-assign" data-arg="${p.id}" ${err ? `disabled title="${esc(err)}"` : ''}>
           ${pastille(p)}<span class="picker-name">${esc(p.name)}${p.essential ? ' ' + badge('Essentiel', 'blue') : ''}</span>
-          <span class="muted small">${stock ? `${num(stock)} en stock` : 'Pas de stock'} · ${slotCapacity(p)}/empl.</span></button>`;
-      }).join('')}</div>`).join('')}`;
+          <span class="muted small">${stock ? `${num(stock)} en stock` : 'Pas de stock'} · ${slotCapacity(p)}/empl.</span>
+          ${where ? `<span class="picker-placed">✓ Déjà en rayon · empl. ${where.join(', ')}</span>` : stock ? '<span class="picker-todo">À placer</span>' : ''}
+        </button>`;
+      }).join('')}</div>`).join('') || '<p class="muted">Aucun produit dans ce filtre.</p>'}`;
 }
+
+on('picker-filter', (f) => {
+  ui.pickerFilter = f;
+  updateModalBody(pickerBody(store.state, ui.pickerSlot));
+});
 
 on('slot-pick', (arg) => {
   ui.pickerSlot = Number(arg);

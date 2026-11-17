@@ -20,6 +20,8 @@ export const ui = {
   statsTab: 'days' as 'days' | 'best' | 'margins',
   objTab: 'daily' as 'daily' | 'weekly' | 'long',
   pickerSlot: -1,
+  /** Filtre de la fenêtre « choisir un produit » : tous, pas encore en rayon, déjà en rayon. */
+  pickerFilter: 'all',
   simRunning: false,
   debug: false,
 };
