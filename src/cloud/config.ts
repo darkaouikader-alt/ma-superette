@@ -21,4 +21,4 @@ export const FIREBASE_CONFIG: FirebaseConfig | null = {
 };
 
 /** Sites sur lesquels la synchronisation est proposée (les autres, comme l'aperçu Claude, la bloquent). */
-export const CLOUD_HOSTS = ['darkaouikader-alt.github.io', 'localhost', '127.0.0.1'];
+export const CLOUD_HOSTS = ['ma-superette.github.io', 'darkaouikader-alt.github.io', 'localhost', '127.0.0.1'];

@@ -40,7 +40,7 @@ export function cloudCard(): string {
     body = '<p class="muted">La synchronisation en ligne n’est pas encore configurée pour ce jeu. Ta partie est sauvegardée sur cet appareil.</p>';
   } else if (s === 'unavailable') {
     body = `<p class="muted">Le compte en ligne fonctionne sur la version installable du jeu :</p>
-      <p><b>https://darkaouikader-alt.github.io/ma-superette/</b></p>
+      <p><b>https://ma-superette.github.io</b></p>
       <p class="muted small">Ici, ta partie est sauvegardée seulement sur cet appareil.</p>`;
   } else if (!u) {
     body = `<p class="muted">Connecte-toi pour retrouver la même partie sur ton téléphone, ta tablette et ton ordinateur.</p>

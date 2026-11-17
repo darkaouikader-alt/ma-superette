@@ -70,7 +70,7 @@ Dans le jeu : **Réglages → ☁️ Compte et synchronisation**.
 3. Ensuite, tout est automatique : la partie est envoyée après chaque journée et récupérée à l'ouverture du jeu.
    Si deux appareils ont avancé chacun de leur côté, le jeu te demande laquelle garder.
 
-Le compte fonctionne sur la version GitHub (https://darkaouikader-alt.github.io/ma-superette/), pas dans l'aperçu Claude.
+Le compte fonctionne sur la version GitHub (https://ma-superette.github.io), pas dans l'aperçu Claude.
 Mot de passe oublié : bouton « Mot de passe oublié ? » sous le formulaire (un e-mail est envoyé).
 
 ## Bon à savoir

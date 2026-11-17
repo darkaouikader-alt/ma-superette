@@ -1,6 +1,6 @@
 # 🏪 Ma Supérette
 
-**▶️ Jouer : https://darkaouikader-alt.github.io/ma-superette/** (ordinateur, Android et iPhone — installable sur l'écran d'accueil)
+**▶️ Jouer : https://ma-superette.github.io** (ordinateur, Android et iPhone — installable sur l'écran d'accueil)
 
 Jeu de gestion de supérette en navigateur, 100 % en français. Pas de gameplay d'action : on fixe ses prix,
 on commande, on remplit ses rayons, on ouvre le magasin et on lit son bilan, jour après jour.
