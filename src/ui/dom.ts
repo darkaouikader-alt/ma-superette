@@ -30,7 +30,7 @@ export const badge = (text: string, tone: Tone = 'grey') => `<span class="badge 
 export function gauge(pct: number, tone: Tone | '' = '', extra = ''): string {
   const p = Math.max(0, Math.min(100, pct));
   const t = tone || (p <= 15 ? 'red' : p <= 40 ? 'orange' : 'green');
-  return `<div class="gauge ${t}" ${extra}><i style="width:${p}%"></i></div>`;
+  return `<div class="gauge ${t}" ${extra}><i style="--p:${(p / 100).toFixed(3)}"></i></div>`;
 }
 
 /** Badge « ✨ Nouveau » des produits récemment débloqués. */

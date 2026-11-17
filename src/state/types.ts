@@ -54,6 +54,8 @@ export interface DayReport {
   salaries: number;
   waste: number;
   interest: number;
+  /** Revenus des succursales ce jour-là. */
+  branchIncome?: number;
   profit: number;
   cashEnd: number;
   customersPotential: number;
@@ -80,7 +82,7 @@ export interface DayReport {
 }
 
 export interface BuyerReport { day: number; products: number; total: number; saved: number; skipped: number }
-export interface Settings { speed: number; sound: boolean; dark: boolean }
+export interface Settings { speed: number; sound: boolean; dark: boolean; /** Animations du décor : auto (coupées sur écran tactile), complètes ou réduites. */ fx?: 'auto' | 'full' | 'reduced' }
 /** Promotion sur un produit : −pct % sur le prix de vente, du jour startDay au jour endDay inclus. */
 export interface Promo { productId: string; pct: number; startDay: number; endDay: number }
 /** Campagne publicitaire en cours (prospectus, radio…). */
@@ -132,6 +134,8 @@ export interface GameState {
   pendingLevelUps: number[];
   finalDone: boolean;
   tutorialOff: boolean;
+  /** Succursales achetées. */
+  branches?: string[];
   /** Acheteur automatique (amélioration « Responsable des achats »). */
   buyer?: { enabled: boolean; coverDays: number; reserve: number; last?: BuyerReport };
   /** Partie modifiée avec le mode debug (+€ / +XP) : exclue du classement mondial. */

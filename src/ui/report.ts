@@ -17,7 +17,7 @@ import { confetti, runCounters } from './fx';
 import { closeModal, modalOpen, openModal } from './modal';
 import { ui } from './uiState';
 
-const line = (label: string, value: number, cls = '', sign: '' | '−' | '=' = '') =>
+const line = (label: string, value: number, cls = '', sign: '' | '−' | '=' | '+' = '') =>
   `<div class="rp-line ${cls}"><span>${sign ? `<i>${sign}</i> ` : ''}${label}</span><b data-count="${value}" data-fmt="money">${money(value)}</b></div>`;
 
 function reportHtml(r: DayReport): string {
@@ -44,6 +44,7 @@ function reportHtml(r: DayReport): string {
         ${r.salaries ? line('Salaires', r.salaries, '', '−') : ''}
         ${r.waste ? line('Produits périmés jetés', r.waste, 'bad', '−') : ''}
         ${r.interest ? line('Intérêts du prêt', r.interest, 'bad', '−') : ''}
+        ${r.branchIncome ? line('🏢 Revenus des succursales', r.branchIncome, 'pos-line', '+') : ''}
         ${line('Bénéfice net', r.profit, `total ${r.profit >= 0 ? 'pos' : 'neg'}`, '=')}
         <div class="rp-line cash"><span>🏦 Trésorerie ce soir</span><b>${money(r.cashEnd)}</b></div>
       </section>

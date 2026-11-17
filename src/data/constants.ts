@@ -23,6 +23,8 @@ export const BALANCE = {
   COLD_SLOTS_PER_LEVEL: 4,
   SHELF_UPGRADE_SLOTS: 4,
   WAREHOUSE_UPGRADE_VOLUME: 300,
+  /** Volume ajouté par niveau d'« Entrepôt logistique ». */
+  LOGISTICS_VOLUME: 2500,
 
   // Demande
   /** Multiplicateur global de la demande (levier principal de difficulté). */
@@ -68,7 +70,7 @@ export const BALANCE = {
   PRICE_IMAGE_SLOPE: 2,
   PRICE_IMAGE_MIN: 0.4,
   /** Clients encaissables par jour selon le niveau de caissier (0 = le gérant seul). */
-  CHECKOUT_CAPACITY: [70, 130, 220, 340, 520],
+  CHECKOUT_CAPACITY: [70, 130, 220, 340, 520, 750, 1000, 1300, 1700],
   SIGN_TRAFFIC: 0.04,
   BILLBOARD_TRAFFIC: 0.08,
   /** L'employé de rayon regarnit les rayons à ces moments de la journée (0..1). */
@@ -114,6 +116,8 @@ export const BALANCE = {
   // Progression
   XP_PER_EURO: 1,
   XP_PER_REP_POINT: 0.5,
+  /** Part des revenus des succursales comptée en XP. */
+  XP_PER_BRANCH_EURO: 0.5,
 
   // Événements
   EVENT_FIRST_DAY: 4,

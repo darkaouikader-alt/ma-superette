@@ -346,7 +346,8 @@ export function storefrontSvg(state: GameState, opts: StorefrontOptions = {}): s
   const { bx, bw, wallTop, awY, upperTop, roofY } = g;
   const weather = weatherFor(state).icon;
   const [sky1, sky2] = look.sky ?? SKIES[weather] ?? SKIES['⛅'];
-  const id = ++uid;
+  // Identifiant provisoire : remplacé à la fin (sert aussi à reconnaître un dessin identique).
+  const id = '§';
   const lit = up(state, 'sign');
   const billboard = up(state, 'billboard');
   const emojis = [...assortment(state)].map((pid) => PRODUCT_BY_ID[pid]?.emoji).filter(Boolean);
@@ -394,10 +395,14 @@ export function storefrontSvg(state: GameState, opts: StorefrontOptions = {}): s
   }
   if (billboard >= 1) street += `<g transform="translate(${tier === 4 ? 20 : Math.min(W - 170, bx + bw + 150)} ${G - 150})"><rect x="34" y="60" width="7" height="90" fill="#5b6470"/><rect x="104" y="60" width="7" height="90" fill="#5b6470"/><rect width="146" height="72" rx="8" fill="#fff" stroke="#ff9f43" stroke-width="5"/><text x="73" y="32" text-anchor="middle" font-size="13" font-weight="700" fill="#2b2a33" font-family="Poppins, sans-serif">MA SUPÉRETTE</text><text x="73" y="56" text-anchor="middle" font-size="${14 + billboard * 2}">📣 ${'⭐'.repeat(billboard)}</text></g>`;
 
-  return `<svg class="storefront" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax slice" style="--sf-aw1:${look.aw1 ?? '#2fa36b'};--sf-glass:${look.glass ?? '#cdeaf9'}" aria-label="Façade du magasin : ${['', 'épicerie', 'supérette', 'mini-marché', 'supermarché'][tier]}">
+  const svg = `<svg class="storefront" data-key="§KEY§" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax slice" style="--sf-aw1:${look.aw1 ?? '#2fa36b'};--sf-glass:${look.glass ?? '#cdeaf9'}" aria-label="Façade du magasin : ${['', 'épicerie', 'supérette', 'mini-marché', 'supermarché'][tier]}">
     <defs><linearGradient id="sky${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky1}"/><stop offset="1" stop-color="${sky2}"/></linearGradient></defs>
     <rect width="${W}" height="${H}" fill="url(#sky${id})"/>${sky}${skyline}
     ${ground(look, tier)}
     ${roof(look, g)}${building}${win}${d.svg}${awning(look, g)}${sign(look, g, tier, lit)}${lighting(look, g)}${decoration(look, g, d.w)}${street}
   </svg>`;
+  // Clé du dessin : identique si rien n'a changé → l'interface réutilise l'ancien dessin.
+  let h = 5381;
+  for (let k = 0; k < svg.length; k++) h = ((h * 33) ^ svg.charCodeAt(k)) >>> 0;
+  return svg.replace('§KEY§', `${h.toString(36)}-${svg.length}`).replaceAll('§', String(++uid));
 }

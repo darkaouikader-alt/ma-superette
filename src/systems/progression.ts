@@ -178,6 +178,9 @@ export function metricValue(metric: string, state: GameState, report?: DayReport
     case 'licence': return state.licences.includes(arg as CategoryId) ? 1 : 0;
     case 'assortment': return assortment(state).size;
     case 'cash': return state.cash;
+    case 'level': return state.level;
+    case 'branches': return (state.branches ?? []).length;
+    case 'totalCustomers': return state.totals.customers;
     case 'final': {
       const a = Math.min(1, state.level / FINAL_GOAL.level);
       const b = Math.min(1, Math.max(0, state.cash) / FINAL_GOAL.cash);

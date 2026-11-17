@@ -62,6 +62,23 @@ demande produit par produit, plus deux boutons de triche pour tester).
 - **Campagnes** : prospectus, dégustation, radio, réseaux sociaux (`data/campaigns.ts`) — coût immédiat,
   bonus de clients pendant quelques jours.
 
+## Fin de partie étendue
+
+- **14 niveaux** (jusqu'à « Enseigne nationale ») : plus de clients, de rayons et d'entrepôt à chaque niveau.
+- **Améliorations prolongées** : rayons et entrepôt (12 niveaux), réfrigérateurs (8), congélateurs (6),
+  caisses (8, jusqu'à 1 700 clients/jour), **Entrepôt logistique** (+2 500 de volume par niveau, niveau 8).
+- **Succursales** (`src/data/branches.ts`, niveau 8 à 13) : achetées avec la trésorerie, elles versent un
+  revenu chaque soir (×0,7 à ×1,3 selon la réputation) et rapportent de l'expérience.
+- Nouveaux objectifs à long terme (niveaux 10/12/14, 100 k€ et 1 M€, succursales, 50 000 clients).
+- Sur une partie simulée, la progression continue jusqu'au jour ~225 (contre ~75 avant).
+
+## Performances
+
+- Animations du décor (nuages, pluie, ampoules…) : réglage *Auto / Activées / Coupées* (Auto = coupées sur
+  écran tactile). Plus de flou d'arrière-plan ; le décor est mis en pause derrière les fenêtres et la journée.
+- Jauges et barre de progression animées par `transform` ; la vitrine n'est redessinée que si elle change.
+- Mesure : travail du navigateur au repos sur le tableau de bord ÷20 (101 → 5 ms/s, téléphone simulé).
+
 ## Achats rapides et responsable des achats
 
 - **Achats rapides** (Commandes) : « Tout ce qui est en rupture » et « Stock faible » mettent au panier,

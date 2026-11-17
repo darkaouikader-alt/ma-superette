@@ -91,6 +91,7 @@ function dayDetail(r: DayReport): string {
         ${line("Chiffre d'affaires", money(r.revenue), 'strong')}
         ${line('Coût des marchandises', `− ${money(r.cogs)}`)}
         ${line('Charges (loyer, électricité, salaires)', `− ${money(charges(r))}`)}
+        ${r.branchIncome ? line('🏢 Succursales', `+ ${money(r.branchIncome)}`, 'pos') : ''}
         ${r.waste ? line('Périmés jetés', `− ${money(r.waste)}`, 'bad') : ''}
         ${line('Bénéfice net', signed(r.profit, money), `total ${r.profit >= 0 ? 'pos' : 'neg'}`)}
         ${line('Trésorerie le soir', money(r.cashEnd))}

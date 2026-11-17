@@ -22,6 +22,13 @@ export const LEVELS: LevelDef[] = [
   { level: 6, name: 'Mini-marché premium', xp: 40000, slots: 52, warehouse: 2500, traffic: 1.9, rent: 115 },
   { level: 7, name: 'Supermarché de proximité', xp: 80000, slots: 62, warehouse: 3300, traffic: 2.15, rent: 160 },
   { level: 8, name: 'Grand supermarché', xp: 140000, slots: 72, warehouse: 4200, traffic: 2.4, rent: 220 },
+  // Fin de partie étendue : l'enseigne continue de grandir (voir aussi les succursales).
+  { level: 9, name: 'Hypermarché de quartier', xp: 230000, slots: 84, warehouse: 5600, traffic: 2.7, rent: 280 },
+  { level: 10, name: 'Hypermarché', xp: 370000, slots: 96, warehouse: 7200, traffic: 3.0, rent: 350 },
+  { level: 11, name: 'Hypermarché régional', xp: 580000, slots: 110, warehouse: 9000, traffic: 3.35, rent: 430 },
+  { level: 12, name: 'Centre commercial', xp: 900000, slots: 124, warehouse: 11000, traffic: 3.7, rent: 520 },
+  { level: 13, name: 'Enseigne régionale', xp: 1400000, slots: 140, warehouse: 13500, traffic: 4.1, rent: 620 },
+  { level: 14, name: 'Enseigne nationale', xp: 2200000, slots: 160, warehouse: 16500, traffic: 4.6, rent: 740 },
 ];
 
 export const MAX_LEVEL = LEVELS.length;

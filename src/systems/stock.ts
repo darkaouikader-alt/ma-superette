@@ -33,7 +33,7 @@ export function warehouseUsed(state: GameState): number {
 }
 
 export function warehouseCapacity(state: GameState): number {
-  return levelDef(state.level).warehouse + up(state, 'warehouse') * BALANCE.WAREHOUSE_UPGRADE_VOLUME;
+  return levelDef(state.level).warehouse + up(state, 'warehouse') * BALANCE.WAREHOUSE_UPGRADE_VOLUME + up(state, 'logistics') * BALANCE.LOGISTICS_VOLUME;
 }
 
 export function slotCount(state: GameState): number {

@@ -41,7 +41,7 @@ export function renderStats(state: GameState): string {
     body = `<table class="table"><thead><tr><th>#</th><th>Produit</th><th class="num">Unités vendues</th><th class="num">CA cumulé</th><th class="num">Marge cumulée</th><th>Part</th></tr></thead>
       <tbody>${best.map((b, i) => `<tr><td>${i + 1}</td><td><div class="prod-cell">${pastille(b.p, 'sm')}<b>${esc(b.p.name)}</b></div></td>
         <td class="num">${num(b.units)}</td><td class="num">${money0(b.revenue)}</td><td class="num pos">${money0(b.revenue - b.cogs)}</td>
-        <td><div class="gauge green wide"><i style="width:${(b.revenue / maxRev) * 100}%"></i></div></td></tr>`).join('') || '<tr><td colspan="6" class="muted center">Pas encore de ventes.</td></tr>'}</tbody></table>`;
+        <td><div class="gauge green wide"><i style="--p:${(b.revenue / maxRev).toFixed(3)}"></i></div></td></tr>`).join('') || '<tr><td colspan="6" class="muted center">Pas encore de ventes.</td></tr>'}</tbody></table>`;
   } else {
     body = `<table class="table"><thead><tr><th>Produit</th><th class="num">Achat</th><th class="num">Prix de vente</th><th class="num">Marge unitaire</th><th class="num">Taux de marge</th></tr></thead>
       <tbody>${margins.map((m) => `<tr><td><div class="prod-cell">${pastille(m.p, 'sm')}<b>${esc(m.p.name)}</b></div></td>

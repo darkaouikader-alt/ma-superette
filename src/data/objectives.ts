@@ -16,7 +16,7 @@ export interface ObjectiveDef {
   final?: boolean;
 }
 
-const scale = (level: number) => [1, 1.6, 2.6, 4.5, 7.5, 11, 15, 20][Math.min(level, 8) - 1];
+const scale = (level: number) => [1, 1.6, 2.6, 4.5, 7.5, 11, 15, 20, 25, 31, 38, 46, 55, 65][Math.min(level, 14) - 1];
 const round5 = (v: number) => Math.round(v / 5) * 5;
 const cash = (base: number) => (l: number) => round5(base * Math.sqrt(scale(l)));
 const xp = (base: number) => (l: number) => round5(base * scale(l));
@@ -72,6 +72,25 @@ export const OBJECTIVES: ObjectiveDef[] = [
     label: () => '2 000 € de trésorerie', reward: { xp: fixed(200) } },
   { id: 'cash10k', scope: 'long', emoji: '💎', metric: 'cash', target: fixed(10000),
     label: () => '10 000 € de trésorerie', reward: { xp: fixed(1000), unlock: 'panier_garni' } },
+  // ── Fin de partie étendue ──
+  { id: 'cash100k', scope: 'long', emoji: '💰', metric: 'cash', target: fixed(100000),
+    label: () => '100 000 € de trésorerie', reward: { xp: fixed(10000) }, minLevel: 7 },
+  { id: 'branch1', scope: 'long', emoji: '🚉', metric: 'branches', target: fixed(1),
+    label: () => 'Ouvrir une première succursale', reward: { xp: fixed(15000) }, minLevel: 8 },
+  { id: 'level10', scope: 'long', emoji: '🏬', metric: 'level', target: fixed(10),
+    label: () => 'Devenir un Hypermarché (niveau 10)', reward: { cash: fixed(20000), xp: fixed(20000) }, minLevel: 8 },
+  { id: 'clients50k', scope: 'long', emoji: '🧑‍🤝‍🧑', metric: 'totalCustomers', target: fixed(50000),
+    label: () => 'Servir 50 000 clients au total', reward: { cash: fixed(15000), xp: fixed(25000) }, minLevel: 8 },
+  { id: 'branch3', scope: 'long', emoji: '🏘️', metric: 'branches', target: fixed(3),
+    label: () => 'Posséder 3 succursales', reward: { xp: fixed(60000) }, minLevel: 9 },
+  { id: 'level12', scope: 'long', emoji: '🏙️', metric: 'level', target: fixed(12),
+    label: () => 'Devenir un Centre commercial (niveau 12)', reward: { cash: fixed(80000), xp: fixed(60000) }, minLevel: 10 },
+  { id: 'cash1m', scope: 'long', emoji: '💎', metric: 'cash', target: fixed(1000000),
+    label: () => '1 000 000 € de trésorerie', reward: { xp: fixed(150000) }, minLevel: 10 },
+  { id: 'branchAll', scope: 'long', emoji: '🗼', metric: 'branches', target: fixed(6),
+    label: () => 'Posséder les 6 succursales', reward: { xp: fixed(200000) }, minLevel: 12 },
+  { id: 'level14', scope: 'long', emoji: '👑', metric: 'level', target: fixed(14),
+    label: () => 'Devenir une Enseigne nationale (niveau 14)', reward: { cash: fixed(250000), xp: fixed(100000) }, minLevel: 12 },
   { id: 'final', scope: 'long', emoji: '🏆', metric: 'final', target: fixed(1), final: true,
     label: () => `Objectif final : devenir un Mini-marché avec ${FINAL_GOAL.cash.toLocaleString('fr-FR')} € de trésorerie`,
     reward: { xp: fixed(5000) } },

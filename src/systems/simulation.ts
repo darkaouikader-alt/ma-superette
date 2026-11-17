@@ -14,6 +14,7 @@ import { makeRng, stochRound } from './rng';
 import { assortment, expireStock, fillAll, sellFromShelf, shelfCapacityFor, shelfQty, slotCapacity, totalQty, warehouseQty, coldCapacity, coldUsed } from './stock';
 import { receiveDeliveries } from './suppliers';
 import { expirePromotions } from './promotions';
+import { dailyBranchIncome } from './branches';
 import { runBuyer } from './buyer';
 import { charmSummary, checkDecorUnlocks } from './decor';
 
@@ -151,7 +152,10 @@ export function runDay(state: GameState): DayOutcome {
   const waste = round2(expired.reduce((s, e) => s + e.value, 0));
   state.cash = round2(state.cash + revenue - charges.total);
   const interest = payLoan(state);
-  const profit = round2(revenue - cogs - charges.total - waste - interest);
+  // Succursales : revenu net versé chaque soir.
+  const branchIncome = dailyBranchIncome(state);
+  state.cash = round2(state.cash + branchIncome);
+  const profit = round2(revenue - cogs - charges.total - waste - interest + branchIncome);
 
   const stockouts = Object.keys(missedUnits);
   const essentialStockouts = stockouts.filter((id) => PRODUCT_BY_ID[id]?.essential);
@@ -197,10 +201,10 @@ export function runDay(state: GameState): DayOutcome {
   state.objectives.essentialStreak = essentialStockouts.length === 0 && essWanted > 0 ? state.objectives.essentialStreak + 1 : 0;
 
   const xpBefore = state.xp;
-  addXp(state, revenue * B.XP_PER_EURO + state.reputation * B.XP_PER_REP_POINT);
+  addXp(state, (revenue + branchIncome * B.XP_PER_BRANCH_EURO) * B.XP_PER_EURO + state.reputation * B.XP_PER_REP_POINT);
 
   const report: DayReport = {
-    day, revenue, cogs,
+    day, revenue, cogs, branchIncome,
     rent: charges.rent, electricity: charges.electricity, salaries: charges.salaries,
     waste, interest, profit, cashEnd: state.cash,
     customersPotential: nPot, customersServed, disappointedStock, disappointedPrice, queueLost,

@@ -28,6 +28,7 @@ export function playDay(outcome: DayOutcome, onDone: () => void): void {
   const state = store.state;
   const day = outcome.report.day;
   const root = document.getElementById('overlay-root')!;
+  lastText.clear();
   const pids = Object.keys(outcome.opening).sort((a, b) => PRODUCT_BY_ID[a].cat.localeCompare(PRODUCT_BY_ID[b].cat));
   run = {
     outcome, onDone, elapsed: 0, last: performance.now(), idx: 0, paused: false, speed: state.settings.speed, done: false,
@@ -43,7 +44,7 @@ export function playDay(outcome: DayOutcome, onDone: () => void): void {
       <div class="sim-clock" id="sim-clock">08:00</div>
       <div class="sim-controls" id="sim-controls">${controls(run)}</div>
     </header>
-    <div class="sim-progress"><i id="sim-bar"></i><span id="sim-sun">🛒</span></div>
+    <div class="sim-progress" id="sim-progress"><i></i><span class="sim-track"><span>🛒</span></span></div>
     <div class="sim-body">
       <div class="sim-left">
         <div class="sim-counters">
@@ -63,6 +64,10 @@ export function playDay(outcome: DayOutcome, onDone: () => void): void {
       </div>
     </div>
   </div></div>`;
+  progressBar = root.querySelector<HTMLElement>('#sim-progress > i');
+  progressCart = root.querySelector<HTMLElement>('#sim-progress .sim-track');
+  progressWidth = root.querySelector<HTMLElement>('#sim-progress')?.getBoundingClientRect().width ?? 0;
+  lastTick = -1;
   requestAnimationFrame(frame);
 }
 
@@ -73,7 +78,7 @@ function updateShelf(r: Run, pid: string): void {
   const pct = (qty / Math.max(1, r.cap[pid] ?? 1)) * 100;
   const g = el.querySelector<HTMLElement>('.gauge');
   const bar = el.querySelector<HTMLElement>('.gauge i');
-  if (bar) bar.style.width = `${pct}%`;
+  if (bar) bar.style.setProperty('--p', (pct / 100).toFixed(3));
   if (g) g.className = `gauge ${pct <= 15 ? 'red' : pct <= 40 ? 'orange' : 'green'}`;
   el.querySelector('b')!.textContent = String(qty);
   el.classList.toggle('out', qty === 0);
@@ -113,6 +118,20 @@ function apply(r: Run, ev: SimEvent): void {
   }
 }
 
+const lastText = new Map<string, string>();
+let progressBar: HTMLElement | null = null;
+let progressCart: HTMLElement | null = null;
+let progressWidth = 0;
+let lastTick = -1;
+/** Met à jour un texte seulement s'il a changé. Retourne true en cas de changement. */
+function setText(sel: string, text: string): boolean {
+  if (lastText.get(sel) === text) return false;
+  lastText.set(sel, text);
+  const el = $(sel);
+  if (el) el.textContent = text;
+  return true;
+}
+
 function frame(now: number): void {
   const r = run;
   if (!r || r.done) return;
@@ -123,15 +142,19 @@ function frame(now: number): void {
   const tl = r.outcome.timeline;
   while (r.idx < tl.length && tl[r.idx].t <= t) apply(r, tl[r.idx++]);
   const minutes = Math.round((8 + t * 12) * 60);
-  $('#sim-clock')!.textContent = `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(Math.floor((minutes % 60) / 5) * 5).padStart(2, '0')}`;
-  $('#sim-bar')!.style.width = `${t * 100}%`;
-  $('#sim-sun')!.style.left = `${t * 100}%`;
-  $('#sc-customers')!.textContent = num(r.customers);
-  $('#sc-revenue')!.textContent = money(r.revenue);
-  $('#sc-items')!.textContent = num(r.items);
-  const lost = $('#sc-lost')!;
-  lost.textContent = num(r.lost);
-  lost.classList.toggle('neg', r.lost > 0);
+  // On n'écrit dans la page que ce qui a changé (moins de travail pour le navigateur).
+  setText('#sim-clock', `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(Math.floor((minutes % 60) / 5) * 5).padStart(2, '0')}`);
+  // Barre et caddie déplacés par « transform » directement (pas de recalcul du reste de la page)
+  const tk = Math.round(t * 400);
+  if (tk !== lastTick) {
+    lastTick = tk;
+    if (progressBar) progressBar.style.transform = `scaleX(${t.toFixed(4)})`;
+    if (progressCart) progressCart.style.transform = `translateX(${(t * progressWidth).toFixed(1)}px)`;
+  }
+  setText('#sc-customers', num(r.customers));
+  setText('#sc-revenue', money(r.revenue));
+  setText('#sc-items', num(r.items));
+  if (setText('#sc-lost', num(r.lost))) $('#sc-lost')!.classList.toggle('neg', r.lost > 0);
   if (t >= 1) {
     r.done = true;
     feed('🌙 Fermeture du magasin… on fait les comptes !', 'restock');

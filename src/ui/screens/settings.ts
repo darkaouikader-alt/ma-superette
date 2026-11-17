@@ -34,6 +34,8 @@ export function renderSettings(state: GameState): string {
       <div class="setting"><div><b>Vitesse de simulation par défaut</b><p class="muted small">Modifiable aussi pendant la journée.</p></div>
         <div class="tabs">${[1, 2, 4].map((v) => `<button class="${s.speed === v ? 'on' : ''}" data-act="setting-speed" data-arg="${v}">x${v}</button>`).join('')}</div></div>
       ${toggle('sound', s.sound, 'Sons', 'Caisse enregistreuse, notifications, passage de niveau.')}
+      <div class="setting"><div><b>Animations du décor</b><p class="muted small">Nuages, pluie, ampoules de l’enseigne… « Auto » les coupe sur téléphone et tablette pour un jeu plus fluide et moins gourmand en batterie.</p></div>
+        <div class="tabs">${(['auto', 'full', 'reduced'] as const).map((v) => `<button class="${(s.fx ?? 'auto') === v ? 'on' : ''}" data-act="setting-fx" data-arg="${v}">${{ auto: 'Auto', full: 'Activées', reduced: 'Coupées' }[v]}</button>`).join('')}</div></div>
       ${toggle('dark', s.dark, 'Mode sombre', 'Pour gérer ta supérette tard le soir.')}
       ${toggle('tutorial', !state.tutorialOff, 'Conseils de démarrage', 'Affiche les infobulles d’aide pendant les 5 premiers jours.')}
     </section>
@@ -60,6 +62,7 @@ on('install-app', async () => {
   if (ok) toast('📲 Application installée : retrouve-la sur ton écran d’accueil.', 'success');
   store.commit();
 });
+on('setting-fx', (v) => { store.state.settings.fx = v as 'auto' | 'full' | 'reduced'; store.commit(); });
 on('setting-speed', (v) => { store.state.settings.speed = Number(v); store.commit(); });
 on('setting-toggle', (key) => {
   const st = store.state;

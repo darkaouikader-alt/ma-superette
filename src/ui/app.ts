@@ -73,12 +73,14 @@ let shownCash: number | null = null;
 function render(): void {
   const state = store.state;
   document.documentElement.dataset.theme = state.settings.dark ? 'dark' : 'light';
+  applyFxSetting();
   const app = document.getElementById('app')!;
   // Position de défilement : zone interne (ordinateur) ou page entière (mobile).
   const scroller = $('.main', app);
   const scroll = scroller?.scrollTop ?? 0;
   const pageScroll = window.scrollY;
   const lvl = levelDef(state.level);
+  const oldHero = app.querySelector<SVGElement>('.hero svg.storefront');
   app.innerHTML = `
   <div class="app">
     <aside class="sidebar">
@@ -114,6 +116,9 @@ function render(): void {
     if (newScroller) newScroller.scrollTop = scroll;
     if (pageScroll) window.scrollTo(0, pageScroll);
   }
+  // Vitrine identique : on garde l'ancien dessin (pas de nouveau calcul ni de redémarrage des animations).
+  const newHero = app.querySelector<SVGElement>('.hero svg.storefront');
+  if (oldHero && newHero && oldHero.dataset.key === newHero.dataset.key) newHero.replaceWith(oldHero);
   ui.entering = false;
   if (ui.screen === 'decor') queueMicrotask(() => markSlotSeen(state));
   // Recherche en cours : messages « aucun résultat » et suggestions à jour après chaque rendu.
@@ -163,8 +168,33 @@ on('open-store', () => {
   } else openStore();
 });
 
+/**
+ * Quand une fenêtre ou la journée animée est ouverte, le décor du dessous se met en pause
+ * (et, sous la journée/le bilan qui couvrent tout l'écran, il n'est plus dessiné du tout).
+ */
+function watchLayers(): void {
+  const overlay = document.getElementById('overlay-root')!;
+  const modals = document.getElementById('modal-root')!;
+  const sync = () => {
+    document.body.classList.toggle('overlay-open', overlay.childElementCount > 0);
+    document.body.classList.toggle('layer-open', overlay.childElementCount > 0 || modals.childElementCount > 0);
+  };
+  const obs = new MutationObserver(sync);
+  obs.observe(overlay, { childList: true });
+  obs.observe(modals, { childList: true });
+  sync();
+}
+
+/** Animations du décor : réglage du joueur, sinon coupées par défaut sur téléphone et tablette. */
+export function applyFxSetting(): void {
+  const s = store.state.settings.fx ?? 'auto';
+  const touch = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+  document.documentElement.classList.toggle('fx-reduced', s === 'reduced' || (s === 'auto' && touch));
+}
+
 export function initApp(): void {
   initActions();
+  watchLayers();
   initInstall(() => { if (ui.screen === 'settings') render(); });
   setupCloud(render);
   store.subscribe(render);
