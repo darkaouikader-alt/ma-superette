@@ -6,6 +6,8 @@ import {
   signIn, signUp, whenAuthResolved, cloudAvailableHere, type CloudStatus, type Conflict, type SaveSummary,
 } from '../cloud/sync';
 import { store } from '../state/store';
+import { currentUsername, forgetProfile, onProfileChange, profileReady } from '../cloud/social';
+import { onSignedIn } from './leaderboard';
 import { on } from './actions';
 import { sfx } from './audio';
 import { $, esc, money } from './dom';
@@ -65,6 +67,8 @@ export function cloudCard(): string {
       <p class="muted small">À la première connexion, la partie de cet appareil est envoyée en ligne. Sur un autre appareil, connecte-toi avec le même compte pour la retrouver.</p>`;
   } else {
     body = `<div class="setting"><div><b>Connecté</b><p class="muted small">${esc(u.email ?? '')}</p></div>${cloudPill()}</div>
+      <div class="setting"><div><b>Nom de joueur</b><p class="muted small">${currentUsername() ? esc(currentUsername()!) : profileReady() ? 'Pas encore choisi' : '…'}</p></div>
+        <button class="btn ghost sm" data-act="lb-username">${currentUsername() ? '✏️ Modifier' : 'Choisir'}</button></div>
       <div class="setting"><div><b>Dernière synchronisation</b><p class="muted small">${esc(fmtTime(lastSyncTime()))}</p></div>
         <button class="btn ghost sm" data-act="cloud-sync">🔄 Synchroniser</button></div>
       ${s === 'error' || s === 'offline' ? `<p class="small ${s === 'error' ? 'neg' : 'muted'}">${esc(cloudError())}</p>` : ''}
@@ -132,6 +136,7 @@ on('welcome-skip', () => {
 });
 
 export function setupCloud(render: () => void): void {
+  onProfileChange(refreshCloudUi);
   // « Entrée » dans le formulaire : pas de rechargement de page (le bouton « Se connecter » fait le travail).
   document.addEventListener('submit', (e) => { if ((e.target as HTMLElement).matches('[data-cloud-form]')) e.preventDefault(); });
   let previous = cloudStatus();
@@ -147,6 +152,11 @@ export function setupCloud(render: () => void): void {
     busy: () => ui.simRunning,
     onChange: () => {
       const s = cloudStatus();
+      const uid = cloudUser()?.uid ?? null;
+      if (uid !== knownUid) {
+        knownUid = uid;
+        if (uid) onSignedIn(); else forgetProfile();
+      }
       if (cloudUser() && document.querySelector('.welcome-modal')) {
         closeWelcome();
         toast(`👋 Connecté : ${esc(cloudUser()?.email ?? '')}`, 'success');
@@ -159,6 +169,7 @@ export function setupCloud(render: () => void): void {
   });
 }
 let lastShown = false;
+let knownUid: string | null = null;
 
 /** À appeler une fois l'interface affichée. */
 export function askAccountOnFirstLaunch(): void {

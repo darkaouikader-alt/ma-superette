@@ -69,6 +69,11 @@ function setStatus(s: CloudStatus, err = ''): void {
 }
 
 export const cloudStatus = () => status;
+/** Accès à la base pour les autres modules (profil, classement). */
+export const cloudDb = () => db;
+let afterUpload: ((state: GameState) => void) | null = null;
+/** Appelé après chaque envoi réussi de la partie (mise à jour du classement). */
+export const onUploaded = (fn: (state: GameState) => void) => { afterUpload = fn; };
 export const cloudError = () => lastError;
 export const cloudUser = () => user;
 export const lastSyncTime = () => readMeta().lastSync;
@@ -191,6 +196,7 @@ async function upload(force = false): Promise<void> {
     return;
   }
   markSynced(result.rev);
+  afterUpload?.(state);
 }
 
 function markSynced(rev: number): void {

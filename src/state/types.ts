@@ -131,6 +131,8 @@ export interface GameState {
   pendingLevelUps: number[];
   finalDone: boolean;
   tutorialOff: boolean;
+  /** Partie modifiée avec le mode debug (+€ / +XP) : exclue du classement mondial. */
+  cheated?: boolean;
   lastReport: DayReport | null;
   settings: Settings;
 }

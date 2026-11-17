@@ -13,6 +13,8 @@ import { slotCapacity, warehouseQty } from '../systems/stock';
 import { initActions, on } from './actions';
 import { initInstall } from './install';
 import { askAccountOnFirstLaunch, cloudPill, setupCloud } from './cloud';
+import { invalidateLeaderboard } from './leaderboard';
+import { applySearch } from './search';
 import { collectAlerts } from './alerts';
 import { sfx } from './audio';
 import { renderDebug } from './debug';
@@ -114,6 +116,8 @@ function render(): void {
   }
   ui.entering = false;
   if (ui.screen === 'decor') queueMicrotask(() => markSlotSeen(state));
+  // Recherche en cours : messages « aucun résultat » et suggestions à jour après chaque rendu.
+  if (ui.screen === 'orders' || ui.screen === 'stock' || ui.screen === 'prices') applySearch(ui.screen);
   const cashEl = $('#top-cash');
   if (cashEl && shownCash !== null && shownCash !== state.cash) animateNumber(cashEl, shownCash, state.cash, money, 600);
   shownCash = state.cash;
@@ -132,6 +136,7 @@ function openStore(): void {
   saveGame(state);
   playDay(outcome, () => {
     ui.simRunning = false;
+    invalidateLeaderboard();
     showReport();
   });
 }

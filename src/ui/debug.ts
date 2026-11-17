@@ -20,7 +20,7 @@ export function renderDebug(state: GameState): string {
   const total = rows.reduce((s, r) => s + r.d.total, 0);
   return `<aside class="debug">
     <header><b>🐞 Debug — formule de demande</b>
-      <span><button class="btn xs ghost" data-act="debug-cash">+1 000 €</button> <button class="btn xs ghost" data-act="debug-xp">+1 000 XP</button> <button class="btn xs ghost" data-act="toggle-debug">✕</button></span></header>
+      <span><span title="Utiliser ces boutons exclut la partie du classement mondial">⚠️</span> <button class="btn xs ghost" data-act="debug-cash">+1 000 €</button> <button class="btn xs ghost" data-act="debug-xp">+1 000 XP</button> <button class="btn xs ghost" data-act="toggle-debug">✕</button></span></header>
     <p>demande = base × essentiel × prix × réputation × jour × événements × affluence × aléa(±${BALANCE.DEMAND_NOISE * 100} %)</p>
     <p>Réputation ${num1(state.reputation)} → ×${f2(reputationFactor(state.reputation))} · jour ×${f2(weekdayFactor(ctx.weekday))} · affluence ×${f2(ctx.traffic)} (dont image prix ×${f2(priceImageFactor(state))}) · marché ×${f2(ctx.marketMult)}
       · clients potentiels ${num1(potentialCustomers(state))} (caisse max ${checkoutCapacity(state)}) · demande totale ≈ ${num1(total)} u.</p>
@@ -35,5 +35,5 @@ export function renderDebug(state: GameState): string {
 }
 
 on('toggle-debug', () => { ui.debug = !ui.debug; store.commit(); });
-on('debug-cash', () => { store.state.cash += 1000; store.commit(); });
-on('debug-xp', () => { addXp(store.state, 1000); store.commit(); });
+on('debug-cash', () => { store.state.cash += 1000; store.state.cheated = true; store.commit(); });
+on('debug-xp', () => { addXp(store.state, 1000); store.state.cheated = true; store.commit(); });

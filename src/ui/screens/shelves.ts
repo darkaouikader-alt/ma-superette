@@ -13,6 +13,7 @@ import { badge, esc, gauge, newBadge, num, pastille } from '../dom';
 import { closeModal, openModal, updateModalBody } from '../modal';
 import { toast } from '../toast';
 import { ui } from '../uiState';
+import { applySearch, searchAttrs, searchBox } from '../search';
 
 function slotCard(state: GameState, i: number): string {
   const slot = state.slots[i];
@@ -94,26 +95,30 @@ function pickerBody(state: GameState, slotIndex: number): string {
     </div>
     ${newCount ? `<p class="small new-note">✨ ${num(newCount)} nouveau${newCount > 1 ? 'x' : ''} produit${newCount > 1 ? 's' : ''} disponible${newCount > 1 ? 's' : ''} depuis peu.${all.some((p) => isNewProduct(p, state) && !totalQty(state, p.id)) ? ' Pense à les commander !' : ''}</p>` : ''}
     ${todoCount ? `<p class="small muted">💡 ${num(todoCount)} produit${todoCount > 1 ? 's' : ''} en stock ${todoCount > 1 ? 'ne sont' : 'n’est'} pas encore en rayon : ${todoCount > 1 ? 'ils sont affichés' : 'il est affiché'} en premier.</p>` : ''}
-    ${groups.map((g) => `<h4 class="picker-cat">${g.c.emoji} ${g.c.name}</h4><div class="picker-grid">
+    ${searchBox('picker', 'Rechercher un produit…')}
+    ${groups.map((g) => `<div data-search-group><h4 class="picker-cat">${g.c.emoji} ${g.c.name}</h4><div class="picker-grid">
       ${g.list.map((p) => {
         const err = canAssign(state, slotIndex, p.id);
         const stock = totalQty(state, p.id);
         const where = placedIn.get(p.id);
-        return `<button class="picker-item ${p.id === current ? 'on' : ''} ${where ? 'placed' : stock ? 'todo' : ''}" data-act="slot-assign" data-arg="${p.id}" ${err ? `disabled title="${esc(err)}"` : ''}>
+        return `<button class="picker-item ${p.id === current ? 'on' : ''} ${where ? 'placed' : stock ? 'todo' : ''}" ${searchAttrs('picker', p)} data-act="slot-assign" data-arg="${p.id}" ${err ? `disabled title="${esc(err)}"` : ''}>
           ${pastille(p)}<span class="picker-name">${esc(p.name)}${isNewProduct(p, state) ? ' ' + newBadge(newBadgeTitle(p, state)) : ''}${p.essential ? ' ' + badge('Essentiel', 'blue') : ''}</span>
           <span class="muted small">${stock ? `${num(stock)} en stock` : 'Pas de stock'} · ${slotCapacity(p)}/empl.</span>
           ${where ? `<span class="picker-placed">✓ Déjà en rayon · empl. ${where.join(', ')}</span>` : stock ? '<span class="picker-todo">À placer</span>' : ''}
         </button>`;
-      }).join('')}</div>`).join('') || '<p class="muted">Aucun produit dans ce filtre.</p>'}`;
+      }).join('')}</div></div>`).join('') || '<p class="muted">Aucun produit dans ce filtre.</p>'}
+    <p class="muted" data-search-empty hidden></p>`;
 }
 
 on('picker-filter', (f) => {
   ui.pickerFilter = f;
   updateModalBody(pickerBody(store.state, ui.pickerSlot));
+  applySearch('picker');
 });
 
 on('slot-pick', (arg) => {
   ui.pickerSlot = Number(arg);
+  ui.search.picker = '';
   openModal({ title: `Emplacement ${ui.pickerSlot + 1} — choisir un produit`, body: pickerBody(store.state, ui.pickerSlot), wide: true });
 });
 on('slot-assign', (arg) => {

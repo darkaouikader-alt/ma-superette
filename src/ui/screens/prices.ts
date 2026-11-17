@@ -15,6 +15,7 @@ import { saveGame } from '../../state/save';
 import { toast } from '../toast';
 import { ui } from '../uiState';
 import { renderPromos } from './promotions';
+import { searchAttrs, searchBox } from '../search';
 
 const VERDICT_TONE: Record<Verdict, Tone> = { cheap: 'green', fair: 'blue', high: 'orange', abuse: 'red' };
 const refCost = (p: Product, state: GameState) => Math.round(p.cost * eventModifiers(state).supplierCost * 100) / 100;
@@ -27,7 +28,7 @@ function priceRow(state: GameState, p: Product): string {
   const margin = price - cost;
   const verdict = priceVerdict(price, market);
   const pct = markupPct(price, cost);
-  return `<tr id="pr-${p.id}">
+  return `<tr id="pr-${p.id}" ${searchAttrs('prices', p)}>
     <td><div class="prod-cell">${pastille(p)}<div><b>${esc(p.name)}</b><div class="badges">${productBadges(state, p)}</div></div></div></td>
     <td class="num" data-label="Achat">${money(cost)}</td>
     <td class="num" data-label="Marché">${money(market)}${market < p.market ? ' <span class="down" title="Promo concurrente">▼</span>' : ''}</td>
@@ -85,6 +86,7 @@ export function renderPrices(state: GameState): string {
   const list = filtered(state);
   return `${head}
   <section class="card toolbar">
+    ${searchBox('prices', 'Rechercher un produit…')}
     <div class="chips">
       <button class="chip ${f.cat === 'all' ? 'on' : ''}" data-act="price-cat" data-arg="all">Tout</button>
       ${cats.map((c) => `<button class="chip ${f.cat === c.id ? 'on' : ''}" data-act="price-cat" data-arg="${c.id}">${c.emoji} ${c.name}</button>`).join('')}
@@ -110,7 +112,7 @@ export function renderPrices(state: GameState): string {
   <section class="card table-card">
     <table class="table prices mcards">
       <thead><tr>${th('name', 'Produit')}${th('cost', 'Achat', 'num')}${th('market', 'Marché', 'num')}${th('price', 'Prix de vente', 'num')}${th('margin', 'Marge', 'num')}${th('verdict', 'Indicateur')}${th('sales', 'Ventes 7 j')}<th></th></tr></thead>
-      <tbody>${list.map((p) => priceRow(state, p)).join('') || '<tr><td colspan="8" class="muted center">Aucun produit ne correspond aux filtres.</td></tr>'}</tbody>
+      <tbody>${list.map((p) => priceRow(state, p)).join('') || '<tr><td colspan="8" class="muted center">Aucun produit ne correspond aux filtres.</td></tr>'}<tr data-search-empty hidden><td colspan="8" class="muted center"></td></tr></tbody>
     </table>
   </section>`;
 }

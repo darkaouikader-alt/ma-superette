@@ -14,19 +14,20 @@ import { productBadges } from '../alerts';
 import { sfx } from '../audio';
 import { badge, esc, gauge, money, newBadge, num, num1, pastille, plural } from '../dom';
 import { toast } from '../toast';
+import { applySearch, currentSearch, matchesSearch, onSearchApplied, searchAttrs, searchBox, searchKey } from '../search';
 import { saveGame } from '../../state/save';
 import { ui } from '../uiState';
 
 const dayName = (day: number) => WEEKDAYS[(day - 1) % 7].toLowerCase();
 const delayText = (d: number) => (d === 1 ? 'Demain matin' : `Dans ${d} jours`);
 
-function catalogRow(state: GameState, p: Product, supId: string): string {
+function catalogRow(state: GameState, p: Product, supId: string, catOk = rowCatOk(state, p)): string {
   const sup = SUPPLIER_BY_ID[supId];
   const lots = cartLots(state, supId, p.id);
   const price = linePrice(p, sup, Math.max(1, lots), state);
   const days = daysOfStock(state, p);
   const transit = inTransit(state, p.id);
-  return `<tr id="or-${p.id}" class="${lots ? 'in-cart' : ''}">
+  return `<tr id="or-${p.id}" class="${lots ? 'in-cart' : ''}" ${searchAttrs('orders', p, catOk)}>
     <td><div class="prod-cell">${pastille(p)}<div><b>${esc(p.name)}</b><div class="badges">${isNewProduct(p, state) ? newBadge(newBadgeTitle(p, state)) + ' ' : ''}${productBadges(state, p)}${p.shelfLife ? ' ' + badge(`⏳ ${p.shelfLife} j`, 'grey') : ''}</div></div></div></td>
     <td class="num" data-label="Stock">${num(totalQty(state, p.id))}${transit ? `<div class="small pos">+${num(transit)} en route</div>` : ''}</td>
     <td class="num" data-label="Ventes">${num1(avgDailyDemand(state, p))}/j<div class="small muted">${Number.isFinite(days) ? `stock ${num1(days)} j` : ''}</div></td>
@@ -52,8 +53,7 @@ export function renderOrders(state: GameState): string {
   const newHere = prods.filter((p) => isNewProduct(p, state));
   if (ui.orderCat === 'new' && !newHere.length) ui.orderCat = 'all';
   // Les nouveautés en tête de liste
-  const shown = prods.filter((p) => ui.orderCat === 'all' || (ui.orderCat === 'new' ? isNewProduct(p, state) : p.cat === ui.orderCat))
-    .sort((a, b) => Number(isNewProduct(b, state)) - Number(isNewProduct(a, state)));
+  const shown = prods.slice().sort((a, b) => Number(isNewProduct(b, state)) - Number(isNewProduct(a, state)));
   return `
   <div class="screen-head">
     <div><h1>🚚 Commandes</h1><p class="muted">Chaque fournisseur a son délai, sa taille de lot et sa remise de volume. Les livraisons arrivent le matin, dans l’entrepôt.</p></div>
@@ -82,6 +82,7 @@ export function renderOrders(state: GameState): string {
             <button class="btn ghost sm" data-act="auto-reorder" data-arg="all">🔁 Tout l’assortiment</button>
           </div>
         </div>
+        <div class="pad-x">${searchBox('orders', `Rechercher chez ${sup.name}…`)}<div class="search-elsewhere" id="search-elsewhere"></div></div>
         <div class="chips pad">
           ${newHere.length ? `<button class="chip new ${ui.orderCat === 'new' ? 'on' : ''}" data-act="order-cat" data-arg="new">✨ Nouveautés (${newHere.length})</button>` : ''}
           <button class="chip ${ui.orderCat === 'all' ? 'on' : ''}" data-act="order-cat" data-arg="all">Tout</button>
@@ -89,7 +90,7 @@ export function renderOrders(state: GameState): string {
         </div>
         <table class="table mcards">
           <thead><tr><th>Produit</th><th class="num">Stock</th><th class="num">Ventes</th><th class="num">Prix unitaire</th><th>Quantité</th><th class="num">Total</th></tr></thead>
-          <tbody>${shown.map((p) => catalogRow(state, p, sup.id)).join('')}</tbody>
+          <tbody>${shown.map((p) => catalogRow(state, p, sup.id)).join('')}<tr data-search-empty hidden><td colspan="6" class="muted center"></td></tr></tbody>
         </table>
       </section>
     </div>
@@ -109,6 +110,29 @@ export function renderOrders(state: GameState): string {
   <div id="cartbar-slot">${cartBar(state)}</div>
   ${ui.cartOpen ? '<div class="cart-scrim" data-act="cart-toggle"></div>' : ''}`;
 }
+
+/** La ligne passe-t-elle le filtre de catégorie choisi ? */
+function rowCatOk(state: GameState, p: Product): boolean {
+  return ui.orderCat === 'all' || (ui.orderCat === 'new' ? isNewProduct(p, state) : p.cat === ui.orderCat);
+}
+
+/** Pendant une recherche : les autres fournisseurs qui ont des produits correspondants. */
+onSearchApplied('orders', () => {
+  const box = document.getElementById('search-elsewhere');
+  if (!box) return;
+  const q = currentSearch('orders');
+  // Pendant une recherche, les catégories ne filtrent plus : on les atténue.
+  box.closest('.card')?.querySelector('.chips.pad')?.classList.toggle('dimmed', !!q.trim());
+  if (!q.trim()) { box.innerHTML = ''; return; }
+  const state = store.state;
+  const sellable = sellableProducts(state);
+  const others = SUPPLIERS.filter((s) => s.id !== ui.supplier)
+    .map((s) => ({ s, n: sellable.filter((p) => s.categories.includes(p.cat) && matchesSearch(searchKey(p), q)).length }))
+    .filter((x) => x.n > 0);
+  box.innerHTML = others.length
+    ? `<span class="small muted">Aussi chez :</span> ${others.map((x) => `<button class="chip" data-act="supplier" data-arg="${x.s.id}">${x.s.emoji} ${esc(x.s.name)} (${x.n})</button>`).join('')}`
+    : '';
+});
 
 function cartPanel(state: GameState): string {
   const cart = cartView(state);
@@ -173,8 +197,13 @@ on('cart-toggle', () => {
   const bar = document.getElementById('cartbar-slot');
   if (bar) bar.innerHTML = cartBar(store.state);
 });
-on('supplier', (id) => { ui.supplier = id; ui.orderCat = 'all'; store.commit(); });
-on('order-cat', (c) => { ui.orderCat = c; store.commit(); });
+on('supplier', (id) => { ui.supplier = id; ui.orderCat = 'all'; store.commit(); applySearch('orders'); });
+on('order-cat', (c) => {
+  // Choisir une catégorie efface la recherche en cours.
+  ui.orderCat = c;
+  ui.search.orders = '';
+  store.commit();
+});
 on('cart-lots', (arg) => {
   const [sid, pid, d] = arg.split(':');
   if (!isSellable(PRODUCT_BY_ID[pid], store.state)) return;

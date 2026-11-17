@@ -8,6 +8,7 @@ import { on } from '../actions';
 import { productBadges, trackedProducts } from '../alerts';
 import { badge, esc, gauge, money, num, num1, pastille } from '../dom';
 import { ui } from '../uiState';
+import { searchAttrs, searchBox } from '../search';
 
 function expiryCell(state: GameState, p: Product): string {
   const batches = (state.stock[p.id] ?? []).filter((b) => b.exp !== null);
@@ -53,12 +54,13 @@ export function renderStock(state: GameState): string {
   </section>
   <div class="orders-grid">
     <section class="card table-card">
+      <div class="pad-x">${searchBox('stock', 'Rechercher un produit dans le stock…')}</div>
       <table class="table mcards">
         <thead><tr>${th('name', 'Produit')}${th('qty', 'Rayon', 'num')}<th class="num">Entrepôt</th><th class="num">En route</th>${th('days', 'Couverture', 'num')}<th>Péremption</th>${th('value', 'Valeur', 'num')}</tr></thead>
         <tbody>${list.map((p) => {
           const days = daysOfStock(state, p);
           const total = totalQty(state, p.id);
-          return `<tr>
+          return `<tr ${searchAttrs('stock', p)}>
             <td><div class="prod-cell">${pastille(p)}<div><b>${esc(p.name)}</b><div class="badges">${productBadges(state, p)}</div></div></div></td>
             <td class="num" data-label="Rayon">${num(shelfQty(state, p.id))}</td>
             <td class="num" data-label="Entrepôt">${num(warehouseQty(state, p.id))}</td>
@@ -67,7 +69,7 @@ export function renderStock(state: GameState): string {
             <td class="m-wide" data-label="Péremption">${expiryCell(state, p)}</td>
             <td class="num" data-label="Valeur">${money(stockValue(state.stock[p.id]))}</td>
           </tr>`;
-        }).join('') || '<tr><td colspan="7" class="muted center">Aucun stock.</td></tr>'}</tbody>
+        }).join('') || '<tr><td colspan="7" class="muted center">Aucun stock.</td></tr>'}<tr data-search-empty hidden><td colspan="7" class="muted center"></td></tr></tbody>
       </table>
     </section>
     <div class="col side">

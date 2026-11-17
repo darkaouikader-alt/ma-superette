@@ -20,6 +20,8 @@ export const ui = {
   statsTab: 'days' as 'days' | 'best' | 'margins',
   objTab: 'daily' as 'daily' | 'weekly' | 'long',
   pickerSlot: -1,
+  /** Texte des barres de recherche, par écran. */
+  search: { orders: '', stock: '', prices: '', picker: '' } as Record<string, string>,
   /** Filtre de la fenêtre « choisir un produit » : tous, pas encore en rayon, déjà en rayon. */
   pickerFilter: 'all',
   simRunning: false,
