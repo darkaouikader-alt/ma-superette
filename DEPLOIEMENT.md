@@ -60,6 +60,19 @@ ensuite, il fonctionne aussi en mode avion.
 - iOS peut effacer les données d'un site **non installé** après plusieurs semaines sans visite :
   installer l'application sur l'écran d'accueil protège ta partie.
 
+## Même partie sur plusieurs appareils
+
+Dans le jeu : **Réglages → ☁️ Compte et synchronisation**.
+
+1. Sur le premier appareil : écris ton e-mail et un mot de passe (6 caractères minimum), puis **Créer un compte**.
+   Ta partie est envoyée en ligne.
+2. Sur chaque autre appareil : même e-mail, même mot de passe, puis **Se connecter**. La partie est récupérée.
+3. Ensuite, tout est automatique : la partie est envoyée après chaque journée et récupérée à l'ouverture du jeu.
+   Si deux appareils ont avancé chacun de leur côté, le jeu te demande laquelle garder.
+
+Le compte fonctionne sur la version GitHub (https://darkaouikader-alt.github.io/ma-superette/), pas dans l'aperçu Claude.
+Mot de passe oublié : bouton « Mot de passe oublié ? » sous le formulaire (un e-mail est envoyé).
+
 ## Bon à savoir
 
 - **Sauvegarde** : elle est stockée dans le navigateur du téléphone. Une partie commencée sur
