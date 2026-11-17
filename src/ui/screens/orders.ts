@@ -6,13 +6,13 @@ import { SUPPLIERS, SUPPLIER_BY_ID } from '../../data/suppliers';
 import type { GameState, Product } from '../../state/types';
 import { store } from '../../state/store';
 import { eventModifiers } from '../../systems/events';
-import { isSellable, sellableProducts } from '../../systems/progression';
+import { isNewProduct, isSellable, newBadgeTitle, sellableProducts } from '../../systems/progression';
 import { avgDailyDemand, daysOfStock, totalQty } from '../../systems/stock';
 import { autoReorder, cartLots, cartView, effectiveDelay, inTransit, linePrice, placeOrders, setCartLots, storageCapacity, storageCommitted, unitCost } from '../../systems/suppliers';
 import { on } from '../actions';
 import { productBadges } from '../alerts';
 import { sfx } from '../audio';
-import { badge, esc, gauge, money, num, num1, pastille, plural } from '../dom';
+import { badge, esc, gauge, money, newBadge, num, num1, pastille, plural } from '../dom';
 import { toast } from '../toast';
 import { saveGame } from '../../state/save';
 import { ui } from '../uiState';
@@ -27,7 +27,7 @@ function catalogRow(state: GameState, p: Product, supId: string): string {
   const days = daysOfStock(state, p);
   const transit = inTransit(state, p.id);
   return `<tr id="or-${p.id}" class="${lots ? 'in-cart' : ''}">
-    <td><div class="prod-cell">${pastille(p)}<div><b>${esc(p.name)}</b><div class="badges">${productBadges(state, p)}${p.shelfLife ? ' ' + badge(`⏳ ${p.shelfLife} j`, 'grey') : ''}</div></div></div></td>
+    <td><div class="prod-cell">${pastille(p)}<div><b>${esc(p.name)}</b><div class="badges">${isNewProduct(p, state) ? newBadge(newBadgeTitle(p, state)) + ' ' : ''}${productBadges(state, p)}${p.shelfLife ? ' ' + badge(`⏳ ${p.shelfLife} j`, 'grey') : ''}</div></div></div></td>
     <td class="num" data-label="Stock">${num(totalQty(state, p.id))}${transit ? `<div class="small pos">+${num(transit)} en route</div>` : ''}</td>
     <td class="num" data-label="Ventes">${num1(avgDailyDemand(state, p))}/j<div class="small muted">${Number.isFinite(days) ? `stock ${num1(days)} j` : ''}</div></td>
     <td class="num" data-label="Prix unitaire">${money(unitCost(p, sup, state))}<div class="small muted">lot de ${sup.lotSize}</div></td>
@@ -48,8 +48,12 @@ export function renderOrders(state: GameState): string {
   const sup = SUPPLIER_BY_ID[ui.supplier];
   const prods = sellable.filter((p) => sup.categories.includes(p.cat));
   const cats = CATEGORIES.filter((c) => prods.some((p) => p.cat === c.id));
-  if (ui.orderCat !== 'all' && !cats.some((c) => c.id === ui.orderCat)) ui.orderCat = 'all';
-  const shown = prods.filter((p) => ui.orderCat === 'all' || p.cat === ui.orderCat);
+  if (ui.orderCat !== 'all' && ui.orderCat !== 'new' && !cats.some((c) => c.id === ui.orderCat)) ui.orderCat = 'all';
+  const newHere = prods.filter((p) => isNewProduct(p, state));
+  if (ui.orderCat === 'new' && !newHere.length) ui.orderCat = 'all';
+  // Les nouveautés en tête de liste
+  const shown = prods.filter((p) => ui.orderCat === 'all' || (ui.orderCat === 'new' ? isNewProduct(p, state) : p.cat === ui.orderCat))
+    .sort((a, b) => Number(isNewProduct(b, state)) - Number(isNewProduct(a, state)));
   return `
   <div class="screen-head">
     <div><h1>🚚 Commandes</h1><p class="muted">Chaque fournisseur a son délai, sa taille de lot et sa remise de volume. Les livraisons arrivent le matin, dans l’entrepôt.</p></div>
@@ -63,6 +67,7 @@ export function renderOrders(state: GameState): string {
           const d = effectiveDelay(s, state);
           return `<button class="supplier ${s.id === ui.supplier ? 'on' : ''}" data-act="supplier" data-arg="${s.id}">
             <span class="sup-emoji">${s.emoji}</span><b>${esc(s.name)}</b>
+            ${sellable.some((p) => s.categories.includes(p.cat) && isNewProduct(p, state)) ? `<span class="badge new">✨ ${sellable.filter((p) => s.categories.includes(p.cat) && isNewProduct(p, state)).length} nouveauté${sellable.filter((p) => s.categories.includes(p.cat) && isNewProduct(p, state)).length > 1 ? 's' : ''}</span>` : ''}
             <span class="small">${delayText(d)} · lots de ${s.lotSize}</span>
             <span class="small">${s.priceFactor < 1 ? `Prix −${Math.round((1 - s.priceFactor) * 100)} % · ` : ''}−${Math.round(s.discountPct * 100)} % dès ${s.discountLots} lots</span>
           </button>`;
@@ -78,6 +83,7 @@ export function renderOrders(state: GameState): string {
           </div>
         </div>
         <div class="chips pad">
+          ${newHere.length ? `<button class="chip new ${ui.orderCat === 'new' ? 'on' : ''}" data-act="order-cat" data-arg="new">✨ Nouveautés (${newHere.length})</button>` : ''}
           <button class="chip ${ui.orderCat === 'all' ? 'on' : ''}" data-act="order-cat" data-arg="all">Tout</button>
           ${cats.map((c) => `<button class="chip ${ui.orderCat === c.id ? 'on' : ''}" data-act="order-cat" data-arg="${c.id}">${c.emoji} ${c.name}</button>`).join('')}
         </div>

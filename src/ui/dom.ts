@@ -33,4 +33,7 @@ export function gauge(pct: number, tone: Tone | '' = '', extra = ''): string {
   return `<div class="gauge ${t}" ${extra}><i style="width:${p}%"></i></div>`;
 }
 
+/** Badge « ✨ Nouveau » des produits récemment débloqués. */
+export const newBadge = (title: string) => `<span class="badge new" title="${esc(title)}">✨ Nouveau</span>`;
+
 export const plural = (n: number, one: string, many = `${one}s`) => `${num(n)} ${n > 1 ? many : one}`;

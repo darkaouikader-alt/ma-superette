@@ -32,9 +32,23 @@ export const sellableProducts = (state: GameState) => PRODUCTS.filter((p) => isS
 
 /** Mémorise le jour où chaque produit devient vendable (pour le délai de grâce). */
 export function refreshSellable(state: GameState): void {
+  // Débloqué pendant le bilan du soir : disponible à partir du lendemain matin.
+  const day = state.phase === 'report' ? state.day + 1 : state.day;
   for (const p of PRODUCTS) {
-    if (state.sellableSince[p.id] === undefined && isSellable(p, state)) state.sellableSince[p.id] = state.day;
+    if (state.sellableSince[p.id] === undefined && isSellable(p, state)) state.sellableSince[p.id] = day;
   }
+}
+
+/** Produit devenu disponible récemment (hors produits du départ) : affiché « Nouveau » pendant quelques jours. */
+export function isNewProduct(p: Product, state: GameState): boolean {
+  const since = state.sellableSince[p.id];
+  return since !== undefined && since > 1 && state.day >= since && state.day - since < BALANCE.NEW_PRODUCT_DAYS && isSellable(p, state);
+}
+
+/** Libellé du badge « Nouveau » (jours restants en info-bulle). */
+export function newBadgeTitle(p: Product, state: GameState): string {
+  const left = BALANCE.NEW_PRODUCT_DAYS - (state.day - (state.sellableSince[p.id] ?? state.day));
+  return `Disponible depuis le jour ${state.sellableSince[p.id]} · encore ${left} jour${left > 1 ? 's' : ''} en nouveauté`;
 }
 
 /** Essentiels que les clients s'attendent à trouver aujourd'hui. */

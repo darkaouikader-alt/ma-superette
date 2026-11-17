@@ -4,12 +4,12 @@ import { PRODUCT_BY_ID } from '../../data/products';
 import type { GameState, Product } from '../../state/types';
 import { store } from '../../state/store';
 import { up } from '../../systems/economy';
-import { sellableProducts } from '../../systems/progression';
+import { isNewProduct, newBadgeTitle, sellableProducts } from '../../systems/progression';
 import { assignSlot, autoArrange, canAssign, coldCapacity, coldUsed, fillAll, fillSlot, setSlotQty, slotCapacity, totalQty, warehouseQty } from '../../systems/stock';
 import { on } from '../actions';
 import { productBadges } from '../alerts';
 import { sfx } from '../audio';
-import { badge, esc, gauge, num, pastille } from '../dom';
+import { badge, esc, gauge, newBadge, num, pastille } from '../dom';
 import { closeModal, openModal, updateModalBody } from '../modal';
 import { toast } from '../toast';
 import { ui } from '../uiState';
@@ -27,7 +27,7 @@ function slotCard(state: GameState, i: number): string {
   return `<div class="slot ${slot.qty === 0 ? 'out' : ''}" style="--h:${CATEGORY_BY_ID[p.cat].hue}">
     <span class="slot-num">${i + 1}</span>${cold}
     <button class="slot-head" data-act="slot-pick" data-arg="${i}" title="Changer de produit">
-      ${pastille(p, 'lg')}<span class="slot-name">${esc(p.name)}</span>
+      ${pastille(p, 'lg')}<span class="slot-name">${esc(p.name)}${isNewProduct(p, state) ? `<br>${newBadge(newBadgeTitle(p, state))}` : ''}</span>
     </button>
     <div class="slot-badges">${productBadges(state, p)}</div>
     ${gauge(pct)}
@@ -62,7 +62,7 @@ export function renderShelves(state: GameState): string {
   <section class="slot-grid">${state.slots.map((_, i) => slotCard(state, i)).join('')}</section>`;
 }
 
-type PickerFilter = 'all' | 'todo' | 'placed';
+type PickerFilter = 'all' | 'todo' | 'placed' | 'new';
 
 function pickerBody(state: GameState, slotIndex: number): string {
   const current = state.slots[slotIndex]?.productId;
@@ -75,20 +75,24 @@ function pickerBody(state: GameState, slotIndex: number): string {
   const filter = ui.pickerFilter as PickerFilter;
   const todoCount = all.filter((p) => !placedIn.has(p.id) && totalQty(state, p.id) > 0).length;
   const placedCount = all.filter((p) => placedIn.has(p.id)).length;
-  const keep = (p: Product) => filter === 'all' || (filter === 'placed' ? placedIn.has(p.id) : !placedIn.has(p.id));
+  const newCount = all.filter((p) => isNewProduct(p, state)).length;
+  const keep = (p: Product) => filter === 'all' || (filter === 'new' ? isNewProduct(p, state) : filter === 'placed' ? placedIn.has(p.id) : !placedIn.has(p.id));
   // Ordre : en stock et pas encore en rayon → pas en rayon sans stock → déjà en rayon
-  const rank = (p: Product) => (placedIn.has(p.id) ? 2 : totalQty(state, p.id) > 0 ? 0 : 1);
+  // Les nouveautés passent devant à rang égal.
+  const rank = (p: Product) => (placedIn.has(p.id) ? 4 : totalQty(state, p.id) > 0 ? 0 : 2) - (isNewProduct(p, state) ? 1 : 0);
   const groups = CATEGORIES.map((c) => ({ c, list: all.filter((p) => p.cat === c.id && keep(p)).sort((a, b) => rank(a) - rank(b)) })).filter((g) => g.list.length);
   const chip = (id: PickerFilter, label: string) => `<button class="chip ${filter === id ? 'on' : ''}" data-act="picker-filter" data-arg="${id}">${label}</button>`;
   return `
     <div class="picker-head">
       <div class="chips">
+        ${newCount ? chip('new', `✨ Nouveautés (${newCount})`) : ''}
         ${chip('all', `Tous (${all.length})`)}
         ${chip('todo', `Pas encore en rayon (${all.length - placedCount})`)}
         ${chip('placed', `✓ Déjà en rayon (${placedCount})`)}
       </div>
       ${current ? `<button class="btn danger sm" data-act="slot-assign" data-arg="">🗑️ Libérer cet emplacement</button>` : ''}
     </div>
+    ${newCount ? `<p class="small new-note">✨ ${num(newCount)} nouveau${newCount > 1 ? 'x' : ''} produit${newCount > 1 ? 's' : ''} disponible${newCount > 1 ? 's' : ''} depuis peu.${all.some((p) => isNewProduct(p, state) && !totalQty(state, p.id)) ? ' Pense à les commander !' : ''}</p>` : ''}
     ${todoCount ? `<p class="small muted">💡 ${num(todoCount)} produit${todoCount > 1 ? 's' : ''} en stock ${todoCount > 1 ? 'ne sont' : 'n’est'} pas encore en rayon : ${todoCount > 1 ? 'ils sont affichés' : 'il est affiché'} en premier.</p>` : ''}
     ${groups.map((g) => `<h4 class="picker-cat">${g.c.emoji} ${g.c.name}</h4><div class="picker-grid">
       ${g.list.map((p) => {
@@ -96,7 +100,7 @@ function pickerBody(state: GameState, slotIndex: number): string {
         const stock = totalQty(state, p.id);
         const where = placedIn.get(p.id);
         return `<button class="picker-item ${p.id === current ? 'on' : ''} ${where ? 'placed' : stock ? 'todo' : ''}" data-act="slot-assign" data-arg="${p.id}" ${err ? `disabled title="${esc(err)}"` : ''}>
-          ${pastille(p)}<span class="picker-name">${esc(p.name)}${p.essential ? ' ' + badge('Essentiel', 'blue') : ''}</span>
+          ${pastille(p)}<span class="picker-name">${esc(p.name)}${isNewProduct(p, state) ? ' ' + newBadge(newBadgeTitle(p, state)) : ''}${p.essential ? ' ' + badge('Essentiel', 'blue') : ''}</span>
           <span class="muted small">${stock ? `${num(stock)} en stock` : 'Pas de stock'} · ${slotCapacity(p)}/empl.</span>
           ${where ? `<span class="picker-placed">✓ Déjà en rayon · empl. ${where.join(', ')}</span>` : stock ? '<span class="picker-todo">À placer</span>' : ''}
         </button>`;

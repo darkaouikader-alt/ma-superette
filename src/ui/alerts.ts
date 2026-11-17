@@ -38,7 +38,9 @@ export function collectAlerts(state: GameState): Alert[] {
 export function productBadges(state: GameState, p: Product): string {
   const b: string[] = [];
   if (p.essential) b.push(badge('Essentiel', 'blue'));
-  for (const a of productAlerts(state, p)) {
+  // « Rupture » seulement pour un produit que les clients attendent : en rayon, ou essentiel déjà exigé.
+  const expected = assortment(state).has(p.id) || expectedEssentials(state).includes(p);
+  for (const a of productAlerts(state, p, expected)) {
     if (a.kind === 'rupture') b.push(badge('Rupture', 'red'));
     else if (a.kind === 'low') b.push(badge(a.text, 'orange'));
     else if (a.kind === 'expToday') b.push(badge('Périme ce soir', 'red'));

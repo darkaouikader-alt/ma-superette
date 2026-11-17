@@ -56,6 +56,8 @@ export const BALANCE = {
     apero: { 4: 1.25, 5: 1.35 },
   } as Record<string, Record<number, number>>,
 
+  /** Nombre de jours pendant lesquels un produit nouvellement disponible est marqué « Nouveau ». */
+  NEW_PRODUCT_DAYS: 3,
   /** Jours de grâce avant que les clients n'exigent un essentiel nouvellement débloqué. */
   ESSENTIAL_GRACE_DAYS: 2,
 
