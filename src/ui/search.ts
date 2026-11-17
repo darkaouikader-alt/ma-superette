@@ -1,4 +1,4 @@
-// Barres de recherche (Commandes, Stock, Prix, choix d'un produit en rayon).
+// Barres de recherche (Commandes, Stock, Prix, Promotions, choix d'un produit en rayon).
 // On ne redessine pas l'écran pendant la saisie (sur iPhone, cela fermerait le clavier) :
 // les lignes qui ne correspondent pas sont simplement masquées.
 import { CATEGORY_BY_ID } from '../data/categories';
@@ -7,7 +7,7 @@ import { on, onInput } from './actions';
 import { esc } from './dom';
 import { ui } from './uiState';
 
-export type SearchScope = 'orders' | 'stock' | 'prices' | 'picker';
+export type SearchScope = 'orders' | 'stock' | 'prices' | 'promos' | 'picker';
 
 /** Minuscules, sans accents : « œufs » et « oeufs », « épicerie » et « epicerie » se valent. */
 export const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/œ/gi, 'oe').replace(/æ/gi, 'ae').toLowerCase().trim();

@@ -26,7 +26,7 @@ export const ui = {
   objTab: 'daily' as 'daily' | 'weekly' | 'long',
   pickerSlot: -1,
   /** Texte des barres de recherche, par écran. */
-  search: { orders: '', stock: '', prices: '', picker: '' } as Record<string, string>,
+  search: { orders: '', stock: '', prices: '', promos: '', picker: '' } as Record<string, string>,
   /** Filtre de la fenêtre « choisir un produit » : tous, pas encore en rayon, déjà en rayon. */
   pickerFilter: 'all',
   simRunning: false,

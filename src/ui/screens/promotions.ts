@@ -10,6 +10,7 @@ import { launchCampaign, promoSlots, startPromo, stopPromo } from '../../systems
 import { sellableProducts } from '../../systems/progression';
 import { assortment, totalQty } from '../../systems/stock';
 import { on } from '../actions';
+import { searchAttrs, searchBox } from '../search';
 import { sfx } from '../audio';
 import { badge, catPastille, esc, gauge, money, money0, num1, pastille } from '../dom';
 import { toast } from '../toast';
@@ -23,7 +24,7 @@ function promoRow(state: GameState, p: Product): string {
   const pct = active ? active.pct : ui.promoPct;
   const promoPrice = active ? salePrice(state, p) : Math.max(0.05, Math.round(price * (1 - pct / 100) * 100) / 100);
   const margin = promoPrice - p.cost;
-  return `<tr class="${active ? 'in-cart' : ''}">
+  return `<tr class="${active ? 'in-cart' : ''}" ${searchAttrs('promos', p)}>
     <td><div class="prod-cell">${pastille(p)}<div><b>${esc(p.name)}</b><div class="badges">${p.essential ? badge('Essentiel', 'blue') : ''}${active ? ` ${badge(`−${active.pct} % · ${endText(state, active.endDay)}`, 'purple')}` : ''}</div></div></div></td>
     <td class="num" data-label="Prix normal">${money(price)}</td>
     <td class="num" data-label="${active ? 'Prix promo' : `Prix à −${pct} %`}"><b>${money(promoPrice)}</b></td>
@@ -80,9 +81,10 @@ export function renderPromos(state: GameState): string {
     </div>
   </section>
   <section class="card table-card">
+    ${candidates.length ? `<div class="pad-x">${searchBox('promos', 'Rechercher un produit à mettre en promo…')}</div>` : ''}
     <table class="table mcards">
       <thead><tr><th>Produit</th><th class="num">Prix normal</th><th class="num">Prix promo</th><th class="num">Marge</th><th></th></tr></thead>
-      <tbody>${candidates.map((p) => promoRow(state, p)).join('') || '<tr><td colspan="5" class="muted center">Mets d’abord des produits en rayon.</td></tr>'}</tbody>
+      <tbody>${candidates.map((p) => promoRow(state, p)).join('') || '<tr><td colspan="5" class="muted center">Mets d’abord des produits en rayon.</td></tr>'}<tr data-search-empty hidden><td colspan="5" class="muted center"></td></tr></tbody>
     </table>
   </section>`;
 }
