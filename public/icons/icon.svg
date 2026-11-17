@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3cb87c"/><stop offset="1" stop-color="#23895a"/></linearGradient></defs>
+  <rect width="512" height="512" rx="0" fill="url(#bg)"/>
+  <circle cx="400" cy="110" r="46" fill="#ffd95a"/>
+  <rect x="96" y="196" width="320" height="226" rx="22" fill="#fff6e6"/>
+  <rect x="128" y="138" width="256" height="50" rx="16" fill="#2a2733"/>
+  <text x="256" y="173" text-anchor="middle" font-family="Poppins, Arial, sans-serif" font-weight="700" font-size="26" letter-spacing="3" fill="#fff">SUPÉRETTE</text>
+  <g>
+    <path d="M86 196h68v30a34 26 0 0 1-68 0z" fill="#ff9f43"/><path d="M154 196h68v30a34 26 0 0 1-68 0z" fill="#fff"/>
+    <path d="M222 196h68v30a34 26 0 0 1-68 0z" fill="#ff9f43"/><path d="M290 196h68v30a34 26 0 0 1-68 0z" fill="#fff"/>
+    <path d="M358 196h68v30a34 26 0 0 1-68 0z" fill="#ff9f43"/>
+  </g>
+  <rect x="122" y="262" width="96" height="120" rx="12" fill="#cdeaf9"/>
+  <rect x="294" y="262" width="96" height="120" rx="12" fill="#cdeaf9"/>
+  <rect x="226" y="272" width="60" height="150" rx="10" fill="#9a6b43"/>
+  <rect x="236" y="284" width="40" height="70" rx="6" fill="#cdeaf9"/>
+  <circle cx="170" cy="302" r="16" fill="#ef6f6c"/><circle cx="150" cy="346" r="13" fill="#ffd166"/><circle cx="188" cy="348" r="13" fill="#58b368"/>
+  <circle cx="342" cy="302" r="16" fill="#4dabf7"/><circle cx="322" cy="346" r="13" fill="#ff9f43"/><circle cx="360" cy="348" r="13" fill="#b197fc"/>
+</svg>

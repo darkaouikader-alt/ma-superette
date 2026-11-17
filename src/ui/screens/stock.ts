@@ -1,0 +1,86 @@
+// Écran 5 : stock / entrepôt.
+import { PRODUCT_BY_ID } from '../../data/products';
+import type { GameState, Product } from '../../state/types';
+import { store } from '../../state/store';
+import { daysOfStock, shelfQty, stockValue, totalQty, warehouseCapacity, warehouseQty, warehouseUsed } from '../../systems/stock';
+import { inTransit } from '../../systems/suppliers';
+import { on } from '../actions';
+import { productBadges, trackedProducts } from '../alerts';
+import { badge, esc, gauge, money, num, num1, pastille } from '../dom';
+import { ui } from '../uiState';
+
+function expiryCell(state: GameState, p: Product): string {
+  const batches = (state.stock[p.id] ?? []).filter((b) => b.exp !== null);
+  if (!p.shelfLife) return '<span class="muted small">Non périssable</span>';
+  if (!batches.length) return '<span class="muted small">—</span>';
+  return batches.slice(0, 3).map((b) => {
+    const d = b.exp! - state.day;
+    return badge(`${b.qty} · ${d <= 0 ? 'ce soir' : d === 1 ? 'demain' : `${d + 1} j`}`, d <= 0 ? 'red' : d === 1 ? 'orange' : 'grey');
+  }).join(' ');
+}
+
+export function renderStock(state: GameState): string {
+  const used = warehouseUsed(state);
+  const cap = warehouseCapacity(state);
+  const prods = trackedProducts(state);
+  const sorters: Record<string, (p: Product) => number> = {
+    days: (p) => daysOfStock(state, p),
+    qty: (p) => -totalQty(state, p.id),
+    value: (p) => -stockValue(state.stock[p.id]),
+    name: () => 0,
+  };
+  const list = prods.slice().sort((a, b) => sorters[ui.stockSort](a) - sorters[ui.stockSort](b) || a.name.localeCompare(b.name));
+  const value = prods.reduce((s, p) => s + stockValue(state.stock[p.id]), 0);
+  const recent = state.history.slice(-7);
+  const losses = new Map<string, { qty: number; value: number }>();
+  for (const h of recent) for (const e of h.expired) {
+    const l = losses.get(e.productId) ?? { qty: 0, value: 0 };
+    l.qty += e.qty; l.value += e.value;
+    losses.set(e.productId, l);
+  }
+  const lossTotal = [...losses.values()].reduce((s, l) => s + l.value, 0);
+  const th = (k: string, label: string, cls = '') => `<th class="sortable ${cls} ${ui.stockSort === k ? 'sorted' : ''}" data-act="stock-sort" data-arg="${k}">${label}</th>`;
+
+  return `
+  <div class="screen-head">
+    <div><h1>📦 Stock et entrepôt</h1><p class="muted">Inventaire complet, dates de péremption et pertes. L’estimation « stock pour X jours » se base sur tes ventes récentes.</p></div>
+  </div>
+  <section class="card stat-strip">
+    <div><span class="kpi-label">Entrepôt</span><b class="${used > cap ? 'neg' : ''}">${num(used)} / ${num(cap)}</b>${gauge((used / cap) * 100, used > cap * 0.9 ? 'red' : 'blue')}</div>
+    <div><span class="kpi-label">Valeur du stock</span><b>${money(value)}</b></div>
+    <div><span class="kpi-label">Références suivies</span><b>${prods.length}</b></div>
+    <div><span class="kpi-label">Pertes (7 derniers jours)</span><b class="${lossTotal > 0 ? 'neg' : 'pos'}">${money(lossTotal)}</b></div>
+  </section>
+  <div class="orders-grid">
+    <section class="card table-card">
+      <table class="table mcards">
+        <thead><tr>${th('name', 'Produit')}${th('qty', 'Rayon', 'num')}<th class="num">Entrepôt</th><th class="num">En route</th>${th('days', 'Couverture', 'num')}<th>Péremption</th>${th('value', 'Valeur', 'num')}</tr></thead>
+        <tbody>${list.map((p) => {
+          const days = daysOfStock(state, p);
+          const total = totalQty(state, p.id);
+          return `<tr>
+            <td><div class="prod-cell">${pastille(p)}<div><b>${esc(p.name)}</b><div class="badges">${productBadges(state, p)}</div></div></div></td>
+            <td class="num" data-label="Rayon">${num(shelfQty(state, p.id))}</td>
+            <td class="num" data-label="Entrepôt">${num(warehouseQty(state, p.id))}</td>
+            <td class="num" data-label="En route">${inTransit(state, p.id) ? `<span class="pos">+${num(inTransit(state, p.id))}</span>` : '<span class="muted">—</span>'}</td>
+            <td class="num" data-label="Couverture"><b class="${total === 0 ? 'neg' : days < 1.2 ? 'warn' : ''}">${total === 0 ? '0 j' : Number.isFinite(days) ? `${num1(Math.min(99, days))} j` : '—'}</b></td>
+            <td class="m-wide" data-label="Péremption">${expiryCell(state, p)}</td>
+            <td class="num" data-label="Valeur">${money(stockValue(state.stock[p.id]))}</td>
+          </tr>`;
+        }).join('') || '<tr><td colspan="7" class="muted center">Aucun stock.</td></tr>'}</tbody>
+      </table>
+    </section>
+    <div class="col side">
+      <section class="card">
+        <div class="card-head"><h2>🗑️ Pertes récentes</h2></div>
+        ${losses.size ? `<ul class="alerts">${[...losses.entries()].sort((a, b) => b[1].value - a[1].value).map(([pid, l]) => {
+          const p = PRODUCT_BY_ID[pid];
+          return p ? `<li>${pastille(p, 'sm')}<span>${esc(p.name)} <span class="muted">× ${l.qty}</span></span><b class="neg">−${money(l.value)}</b></li>` : '';
+        }).join('')}</ul><p class="muted small">Astuce : commande les produits frais en plus petites quantités, plus souvent.</p>`
+          : '<p class="muted">♻️ Aucun produit jeté cette semaine. Bravo !</p>'}
+      </section>
+    </div>
+  </div>`;
+}
+
+on('stock-sort', (k) => { ui.stockSort = k; store.commit(); });
