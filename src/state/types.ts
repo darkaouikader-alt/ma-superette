@@ -59,7 +59,11 @@ export interface DayReport {
   /** Revenus des succursales ce jour-là. */
   branchIncome?: number;
   /** Autres magasins gérés : résultat de leur journée (déjà compté dans le bénéfice net). */
-  shops?: { id: string; manager: ShopEntry['manager']; revenue: number; profit: number; customers: number }[];
+  shops?: { id: string; manager: ShopEntry['manager']; revenue: number; profit: number; customers: number; repAfter?: number; disappointed?: number }[];
+  /** Magasin détaillé dans ce bilan (le magasin affiché) et son bénéfice propre, avant succursales, prêt et autres magasins. */
+  shopId?: string;
+  shopProfit?: number;
+  shopManager?: ShopEntry['manager'];
   profit: number;
   cashEnd: number;
   customersPotential: number;

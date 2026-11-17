@@ -230,7 +230,7 @@ export function runDay(state: GameState): DayOutcome {
       if (i === active) return;
       const r = shopDay(state, i).report;
       entry.last = { day, revenue: r.revenue, profit: r.profit, customers: r.customersServed };
-      others.push({ id: entry.id, manager: entry.manager, revenue: r.revenue, profit: r.profit, customers: r.customersServed });
+      others.push({ id: entry.id, manager: entry.manager, revenue: r.revenue, profit: r.profit, customers: r.customersServed, repAfter: r.repAfter, disappointed: r.disappointedStock + r.disappointedPrice + r.queueLost });
     });
   }
   const main = shopDay(state, active);
@@ -247,6 +247,12 @@ export function runDay(state: GameState): DayOutcome {
   report.interest = interest;
   report.branchIncome = branchIncome;
   if (others.length) report.shops = others;
+  if (others.length) {
+    const entry = shopList(state)[active];
+    report.shopId = entry.id;
+    report.shopManager = entry.manager;
+    report.shopProfit = report.profit;
+  }
   report.profit = round2(report.profit - interest + branchIncome + othersProfit);
 
   state.totals.revenue = round2(state.totals.revenue + report.revenue + othersRevenue);

@@ -105,6 +105,19 @@ describe('magasins gérés', () => {
     expect(loaded.buyer?.enabled).toBe(true);
   });
 
+  it('bilan : résultat de chaque magasin séparé, total de l’enseigne cohérent', () => {
+    const s = rich();
+    buyShop(s, 'tilleuls');
+    delegateShop(s, 1, 'expert');
+    runDay(s); startNextDay(s);
+    const { report: r } = runDay(s);
+    expect(r.shopId).toBe('main');
+    expect(r.shops?.map((o) => o.id)).toEqual(['tilleuls']);
+    const others = r.shops!.reduce((t, o) => t + o.profit, 0);
+    expect(r.profit).toBeCloseTo(r.shopProfit! + others + (r.branchIncome ?? 0) - r.interest, 1);
+    expect(r.shops![0].repAfter).toBeTypeOf('number');
+  });
+
   it('forEachShop revient au magasin affiché même en cas d’erreur', () => {
     const s = rich();
     buyShop(s, 'tilleuls');

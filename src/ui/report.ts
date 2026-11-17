@@ -10,7 +10,8 @@ import { storefrontSvg } from './storefront';
 import type { DayReport } from '../state/types';
 import { levelNews, xpProgress } from '../systems/progression';
 import { startNextDay } from '../systems/simulation';
-import { activeShop, shopCount, shopDef } from '../systems/shops';
+import { shopDef } from '../systems/shops';
+import { MANAGER_BY_ID, type ManagerId } from '../data/shops';
 import { on } from './actions';
 import { sfx } from './audio';
 import { badge, catPastille, esc, gauge, money, money0, num, num1, pastille, signed } from './dom';
@@ -40,18 +41,52 @@ export function lostSalesBlock(r: DayReport): string {
   </div>`;
 }
 
+/** Bilan : tableau des résultats de chaque magasin géré (dès 2 magasins). */
+function shopsTable(r: DayReport): string {
+  const rows = [
+    { id: r.shopId!, manager: r.shopManager ?? null, revenue: r.revenue, profit: r.shopProfit!, customers: r.customersServed,
+      repAfter: r.repAfter as number | undefined, disappointed: r.disappointedStock + r.disappointedPrice + r.queueLost as number | undefined, shown: true },
+    ...(r.shops ?? []).map((o) => ({ ...o, shown: false })),
+  ];
+  const tot = rows.reduce((t, o) => ({ revenue: t.revenue + o.revenue, profit: t.profit + o.profit, customers: t.customers + o.customers }), { revenue: 0, profit: 0, customers: 0 });
+  const who = (m: string | null) => (m ? `${MANAGER_BY_ID[m as ManagerId].emoji} ${esc(MANAGER_BY_ID[m as ManagerId].name)}` : '🙋 Toi');
+  return `<section class="rp-shops">
+    <h3>🏪 Résultats par magasin</h3>
+    <table class="table mcards rp-shops-table">
+      <thead><tr><th>Magasin</th><th>Gestion</th><th class="num">Chiffre d'affaires</th><th class="num">Bénéfice</th><th class="num">Clients servis</th><th class="num">Déçus</th><th class="num">Réputation</th></tr></thead>
+      <tbody>${rows.map((o) => `<tr class="${o.shown ? 'in-cart' : ''}">
+        <td><b>${shopDef(o.id).emoji} ${esc(shopDef(o.id).name)}</b>${o.shown ? ` ${badge('Détaillé ci-dessus', 'green')}` : ''}</td>
+        <td data-label="Gestion">${who(o.manager)}</td>
+        <td class="num" data-label="CA">${money0(o.revenue)}</td>
+        <td class="num" data-label="Bénéfice"><b class="${o.profit >= 0 ? 'pos' : 'neg'}">${money0(o.profit)}</b></td>
+        <td class="num" data-label="Clients servis">${num(o.customers)}</td>
+        <td class="num" data-label="Déçus">${o.disappointed === undefined ? '—' : `<span class="${o.disappointed ? 'neg' : ''}">${num(o.disappointed)}</span>`}</td>
+        <td class="num" data-label="Réputation">${o.repAfter === undefined ? '—' : `${num1(o.repAfter)}`}</td>
+      </tr>`).join('')}
+      <tr class="rp-shops-total"><td><b>Total des magasins</b></td><td class="m-hide"></td>
+        <td class="num" data-label="CA"><b>${money0(tot.revenue)}</b></td>
+        <td class="num" data-label="Bénéfice"><b class="${tot.profit >= 0 ? 'pos' : 'neg'}">${money0(tot.profit)}</b></td>
+        <td class="num" data-label="Clients servis"><b>${num(tot.customers)}</b></td><td class="m-hide"></td><td class="m-hide"></td></tr>
+      </tbody>
+    </table>
+    ${r.branchIncome || r.interest ? `<p class="small muted">Hors magasins : ${r.branchIncome ? `succursales +${money0(r.branchIncome)}` : ''}${r.branchIncome && r.interest ? ' · ' : ''}${r.interest ? `intérêts du prêt −${money0(r.interest)}` : ''}.</p>` : ''}
+  </section>`;
+}
+
 function reportHtml(r: DayReport): string {
   const state = store.state;
   const top = Object.entries(r.sales).sort((a, b) => b[1].revenue - a[1].revenue).slice(0, 5);
   const xp = xpProgress(state);
   const repDelta = Math.round((r.repAfter - r.repBefore) * 10) / 10;
   const mood = r.profit >= 0 ? (r.profit > 50 ? '🎉' : '🙂') : '😬';
+  const multi = !!r.shops?.length && r.shopId !== undefined && r.shopProfit !== undefined;
+  const othersProfit = (r.shops ?? []).reduce((s, o) => s + o.profit, 0);
   const pills = (ids: string[]) => ids.map((id) => PRODUCT_BY_ID[id] ? pastille(PRODUCT_BY_ID[id], 'sm') : '').join('');
   return `<div class="overlay report"><div class="report-card">
     <header class="rp-head">
-      <div><span class="hero-level">Bilan de fin de journée</span><h2>Jour ${r.day} · ${WEEKDAYS[(r.day - 1) % 7]} ${r.weather}</h2>${shopCount(state) > 1 ? `<p class="muted small">${shopDef(activeShop(state).id).emoji} Détail : ${esc(shopDef(activeShop(state).id).name)} · bénéfice net de toute l’enseigne</p>` : ''}
+      <div><span class="hero-level">Bilan de fin de journée</span><h2>Jour ${r.day} · ${WEEKDAYS[(r.day - 1) % 7]} ${r.weather}</h2>${multi ? `<p class="muted small">${shopDef(r.shopId!).emoji} Détail du magasin affiché : <b>${esc(shopDef(r.shopId!).name)}</b> · les autres magasins sont résumés plus bas</p>` : ''}
         ${r.eventIds.map((id) => EVENT_BY_ID[id] ? badge(`${EVENT_BY_ID[id].emoji} ${EVENT_BY_ID[id].name}`, 'purple') : '').join(' ')}</div>
-      <div class="rp-profit ${r.profit >= 0 ? 'pos' : 'neg'}"><span>${mood} Bénéfice du jour</span><b data-count="${r.profit}" data-fmt="smoney">${signed(r.profit, money)}</b></div>
+      <div class="rp-profit ${r.profit >= 0 ? 'pos' : 'neg'}"><span>${mood} Bénéfice du jour${multi ? ' (enseigne)' : ''}</span><b data-count="${r.profit}" data-fmt="smoney">${signed(r.profit, money)}</b></div>
     </header>
     <div class="rp-grid">
       <section class="rp-col">
@@ -63,10 +98,11 @@ function reportHtml(r: DayReport): string {
         ${line('Électricité', r.electricity, '', '−')}
         ${r.salaries ? line('Salaires', r.salaries, '', '−') : ''}
         ${r.waste ? line('Produits périmés jetés', r.waste, 'bad', '−') : ''}
+        ${multi ? line(`Bénéfice de ${esc(shopDef(r.shopId!).name)}`, r.shopProfit!, `sub ${r.shopProfit! >= 0 ? 'pos' : 'neg'}`, '=') : ''}
+        ${multi ? line(`🏪 Autres magasins (${r.shops!.length})`, othersProfit, othersProfit >= 0 ? 'pos-line' : 'bad', othersProfit >= 0 ? '+' : '') : ''}
         ${r.interest ? line('Intérêts du prêt', r.interest, 'bad', '−') : ''}
         ${r.branchIncome ? line('🏢 Revenus des succursales', r.branchIncome, 'pos-line', '+') : ''}
-        ${r.shops?.length ? r.shops.map((o) => line(`${shopDef(o.id).emoji} ${esc(shopDef(o.id).name)}${o.manager ? ' (gérant)' : ''}`, o.profit, o.profit >= 0 ? 'pos-line' : 'bad', o.profit >= 0 ? '+' : '')).join('') : ''}
-        ${line('Bénéfice net', r.profit, `total ${r.profit >= 0 ? 'pos' : 'neg'}`, '=')}
+        ${line(multi ? 'Bénéfice net de l’enseigne' : 'Bénéfice net', r.profit, `total ${r.profit >= 0 ? 'pos' : 'neg'}`, '=')}
         <div class="rp-line cash"><span>🏦 Trésorerie ce soir</span><b>${money(r.cashEnd)}</b></div>
       </section>
       <section class="rp-col">
@@ -99,6 +135,7 @@ function reportHtml(r: DayReport): string {
         ${r.levelAfter > r.levelBefore ? `<p class="pos"><b>🎊 Niveau ${r.levelAfter} atteint !</b></p>` : ''}
       </section>
     </div>
+    ${multi ? shopsTable(r) : ''}
     <footer class="rp-foot"><button class="btn primary xl" data-act="next-day">☀️ Jour suivant</button></footer>
   </div></div>`;
 }

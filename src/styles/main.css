@@ -671,3 +671,8 @@ body.overlay-open .app { visibility: hidden; }
 .manager-card:hover { border-color: var(--accent); }
 .manager-card > span:last-child { display: flex; flex-direction: column; gap: 4px; }
 @media (max-width: 640px) { .shop-chip { max-width: 150px; } }
+/* Bilan : résultats par magasin */
+.rp-shops { margin-top: 16px; background: var(--grey-soft); border-radius: 20px; padding: 16px 18px; }
+.rp-shops h3 { margin: 0 0 10px; }
+.rp-shops-table { width: 100%; background: var(--card); border-radius: 14px; overflow: hidden; }
+.rp-shops-total td { border-top: 2px solid var(--line); }
