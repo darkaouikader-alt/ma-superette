@@ -16,6 +16,7 @@ import { receiveDeliveries } from './suppliers';
 import { expirePromotions } from './promotions';
 import { dailyBranchIncome } from './branches';
 import { runBuyer } from './buyer';
+import { boostValue } from './wheel';
 import { charmSummary, checkDecorUnlocks } from './decor';
 
 export interface SimSale { pid: string; qty: number; amount: number }
@@ -170,6 +171,7 @@ export function runDay(state: GameState): DayOutcome {
     missingFraction: otherWanted > 0 ? otherMissed / otherWanted : 0,
     decoLevel: up(state, 'deco'),
     bonus: [
+      ...(boostValue(state, 'rep') ? [{ label: 'Roue : bouche-à-oreille', delta: boostValue(state, 'rep') }] : []),
       ...(decorCharm.rep > 0 ? [{ label: 'Façade attrayante', delta: decorCharm.rep }] : []),
       ...activeCampaigns(state, day).filter((c) => c.def.rep).map((c) => ({ label: `${c.def.name}`, delta: c.def.rep! })),
       ...(activePromos(state, day).some((x) => PRODUCT_BY_ID[x.productId]?.essential) ? [{ label: 'Promos sur les essentiels', delta: BALANCE.PROMO_REP_ESSENTIAL }] : []),
@@ -201,7 +203,8 @@ export function runDay(state: GameState): DayOutcome {
   state.objectives.essentialStreak = essentialStockouts.length === 0 && essWanted > 0 ? state.objectives.essentialStreak + 1 : 0;
 
   const xpBefore = state.xp;
-  addXp(state, (revenue + branchIncome * B.XP_PER_BRANCH_EURO) * B.XP_PER_EURO + state.reputation * B.XP_PER_REP_POINT);
+  // Roue « Expérience ×1,5 » : multiplie l'XP de la journée.
+  addXp(state, ((revenue + branchIncome * B.XP_PER_BRANCH_EURO) * B.XP_PER_EURO + state.reputation * B.XP_PER_REP_POINT) * (1 + boostValue(state, 'xp')));
 
   const report: DayReport = {
     day, revenue, cogs, branchIncome,

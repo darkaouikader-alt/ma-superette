@@ -17,6 +17,7 @@ import { PRODUCT_BY_ID } from '../../data/products';
 import { unseenDecor } from './decor';
 import { historyCard } from '../history';
 import { leaderboardCard } from '../leaderboard';
+import { wheelCard } from '../wheel';
 
 interface Coach { title: string; text: string; cta?: string; screen?: string }
 
@@ -128,6 +129,7 @@ export function renderDashboard(state: GameState): string {
           ${!state.morningNews.length && !events.length && !upcoming.length ? '<li class="muted">Journée ordinaire, rien à signaler.</li>' : ''}
         </ul>
       </section>
+      ${wheelCard(state)}
       ${leaderboardCard(state)}
       <section class="card">
         <div class="card-head"><h2>🔔 Alertes stock</h2>${alerts.length ? badge(String(alerts.length), 'orange') : ''}</div>

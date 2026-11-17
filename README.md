@@ -72,6 +72,14 @@ demande produit par produit, plus deux boutons de triche pour tester).
 - Nouveaux objectifs à long terme (niveaux 10/12/14, 100 k€ et 1 M€, succursales, 50 000 clients).
 - Sur une partie simulée, la progression continue jusqu'au jour ~225 (contre ~75 avant).
 
+## Roue de la fortune
+
+Tableau de bord → **🎡 Roue de la fortune** : un tour par heure en temps réel (délai lié à la partie,
+donc synchronisé entre appareils). Lots : cagnotte ou jackpot (selon le niveau), ou bonus temporaires
+en temps réel — +15 % de clients (3 h), expérience ×1,5 (2 h), achats −10 % (4 h), clients généreux
+(3 h), livraison accélérée (12 h), +1 réputation par jour (48 h). Un bonus regagné voit sa durée
+s'additionner. Données : `src/data/wheel.ts` ; effets : `src/systems/wheel.ts`.
+
 ## Performances
 
 - Animations du décor (nuages, pluie, ampoules…) : réglage *Auto / Activées / Coupées* (Auto = coupées sur

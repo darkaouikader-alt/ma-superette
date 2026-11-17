@@ -6,6 +6,7 @@ import { UPGRADES } from '../data/upgrades';
 import type { GameState, Product } from '../state/types';
 import { computeDemand, reputationFactor, weekdayFactor, type DemandBreakdown, type DemandContext } from './demand';
 import { decorTraffic } from './decor';
+import { boostValue } from './wheel';
 import { activeEvents, eventModifiers, marketPrice, weatherFor } from './events';
 
 export const weekdayOf = (day: number) => (day - 1) % 7;
@@ -81,15 +82,16 @@ export function checkoutCapacity(state: GameState): number {
 /** Contexte de demande pour un jour donné. `neutralDay` = jour moyen sans météo ni événement. */
 export function demandContext(state: GameState, day = state.day, neutralDay = false): DemandContext {
   if (neutralDay) {
-    return { reputation: state.reputation, weekday: -1, traffic: trafficMultiplier(state) * decorTraffic(state), events: [], marketMult: 1, promos: promoMap(state, day) };
+    return { reputation: state.reputation, weekday: -1, traffic: trafficMultiplier(state) * decorTraffic(state) * (1 + boostValue(state, 'traffic')), events: [], marketMult: 1 + boostValue(state, 'price'), promos: promoMap(state, day) };
   }
   const mods = eventModifiers(state, day);
   return {
     reputation: state.reputation,
     weekday: weekdayOf(day),
-    traffic: trafficMultiplier(state) * mods.traffic * weatherFor(state, day).traffic * priceImageFactor(state) * promotionTraffic(state, day) * decorTraffic(state),
+    traffic: trafficMultiplier(state) * mods.traffic * weatherFor(state, day).traffic * priceImageFactor(state) * promotionTraffic(state, day) * decorTraffic(state) * (1 + boostValue(state, 'traffic')),
     events: activeEvents(state, day),
-    marketMult: mods.market,
+    // « Clients généreux » (roue) : ils jugent les prix par rapport à un marché perçu plus haut.
+    marketMult: mods.market * (1 + boostValue(state, 'price')),
     promos: promoMap(state, day),
   };
 }

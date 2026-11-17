@@ -4,6 +4,7 @@ import { PRODUCT_BY_ID } from '../data/products';
 import { SUPPLIERS, SUPPLIER_BY_ID, type SupplierDef } from '../data/suppliers';
 import type { GameState, Order, Product } from '../state/types';
 import { round2, up } from './economy';
+import { boostValue } from './wheel';
 import { eventModifiers } from './events';
 import { expectedEssentials, sellableProducts } from './progression';
 import { addStock, assortment, expiringBy, forecastDemand, totalQty, warehouseCapacity } from './stock';
@@ -11,12 +12,14 @@ import { addStock, assortment, expiringBy, forecastDemand, totalQty, warehouseCa
 export const suppliersFor = (p: Product): SupplierDef[] => SUPPLIERS.filter((s) => s.categories.includes(p.cat));
 
 export function effectiveDelay(sup: SupplierDef, state: GameState): number {
-  if (up(state, 'express') > 0) return Math.max(1, sup.delay - 1);
+  // Livraison express (amélioration) ou accélérée (roue) : un jour de moins, minimum le lendemain.
+  const faster = up(state, 'express') > 0 || boostValue(state, 'express') > 0;
+  if (faster) return Math.max(1, sup.delay - 1);
   return sup.delay + eventModifiers(state).deliveryDelay;
 }
 
 export function unitCost(p: Product, sup: SupplierDef, state: GameState): number {
-  return round2(p.cost * sup.priceFactor * eventModifiers(state).supplierCost);
+  return round2(p.cost * sup.priceFactor * eventModifiers(state).supplierCost * (1 - boostValue(state, 'supplier')));
 }
 
 export interface LinePrice { qty: number; unit: number; discountPct: number; total: number }

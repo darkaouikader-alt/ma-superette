@@ -4,7 +4,7 @@ import type { GameState, Product } from '../../state/types';
 import { store } from '../../state/store';
 import { daysOfStock, shelfQty, stockValue, totalQty, warehouseCapacity, warehouseQty, warehouseUsed } from '../../systems/stock';
 import { inTransit } from '../../systems/suppliers';
-import { on } from '../actions';
+import { on, onChange } from '../actions';
 import { productBadges, trackedProducts } from '../alerts';
 import { badge, esc, gauge, money, num, num1, pastille } from '../dom';
 import { ui } from '../uiState';
@@ -24,13 +24,26 @@ export function renderStock(state: GameState): string {
   const used = warehouseUsed(state);
   const cap = warehouseCapacity(state);
   const prods = trackedProducts(state);
-  const sorters: Record<string, (p: Product) => number> = {
-    days: (p) => daysOfStock(state, p),
-    qty: (p) => -totalQty(state, p.id),
-    value: (p) => -stockValue(state.stock[p.id]),
-    name: () => 0,
+  // Tri sur toutes les colonnes, dans les deux sens (▲ du plus petit au plus grand, ▼ l'inverse).
+  const firstExpiry = (p: Product) => Math.min(...(state.stock[p.id] ?? []).map((b) => b.exp ?? Infinity), Infinity);
+  const sorters: Record<string, (p: Product) => number | string> = {
+    name: (p) => p.name,
+    shelf: (p) => shelfQty(state, p.id),
+    warehouse: (p) => warehouseQty(state, p.id),
+    transit: (p) => inTransit(state, p.id),
+    days: (p) => (totalQty(state, p.id) === 0 ? 0 : daysOfStock(state, p)),
+    expiry: (p) => firstExpiry(p),
+    value: (p) => stockValue(state.stock[p.id]),
   };
-  const list = prods.slice().sort((a, b) => sorters[ui.stockSort](a) - sorters[ui.stockSort](b) || a.name.localeCompare(b.name));
+  const key = sorters[ui.stockSort] ? ui.stockSort : 'days';
+  /** Compare deux valeurs dans le sens choisi ; « non périssable » / « sans ventes » (∞) restent toujours en fin de liste. */
+  const compare = (x: number | string, y: number | string): number => {
+    if (typeof x === 'string' || typeof y === 'string') return String(x).localeCompare(String(y), 'fr') * ui.stockDir;
+    const fx = Number.isFinite(x), fy = Number.isFinite(y);
+    if (!fx || !fy) return fx === fy ? 0 : fx ? -1 : 1;
+    return (x - y) * ui.stockDir;
+  };
+  const list = prods.slice().sort((a, b) => compare(sorters[key](a), sorters[key](b)) || a.name.localeCompare(b.name, 'fr'));
   const value = prods.reduce((s, p) => s + stockValue(state.stock[p.id]), 0);
   const recent = state.history.slice(-7);
   const losses = new Map<string, { qty: number; value: number }>();
@@ -40,7 +53,9 @@ export function renderStock(state: GameState): string {
     losses.set(e.productId, l);
   }
   const lossTotal = [...losses.values()].reduce((s, l) => s + l.value, 0);
-  const th = (k: string, label: string, cls = '') => `<th class="sortable ${cls} ${ui.stockSort === k ? 'sorted' : ''}" data-act="stock-sort" data-arg="${k}">${label}</th>`;
+  const arrow = (k: string) => (key === k ? (ui.stockDir > 0 ? ' ▲' : ' ▼') : '');
+  const th = (k: string, label: string, cls = '') => `<th class="sortable ${cls} ${key === k ? 'sorted' : ''}" data-act="stock-sort" data-arg="${k}" aria-sort="${key === k ? (ui.stockDir > 0 ? 'ascending' : 'descending') : 'none'}" title="Trier par ${label.toLowerCase()}">${label}${arrow(k)}</th>`;
+  const LABELS: Record<string, string> = { name: 'Produit', shelf: 'Rayon', warehouse: 'Entrepôt', transit: 'En route', days: 'Couverture', expiry: 'Péremption', value: 'Valeur' };
 
   return `
   <div class="screen-head">
@@ -54,9 +69,13 @@ export function renderStock(state: GameState): string {
   </section>
   <div class="orders-grid">
     <section class="card table-card">
-      <div class="pad-x">${searchBox('stock', 'Rechercher un produit dans le stock…')}</div>
+      <div class="pad-x">${searchBox('stock', 'Rechercher un produit dans le stock…')}
+        <div class="m-sort m-only-flex-row">
+          <select data-change="stock-sort-select" aria-label="Trier par">${Object.entries(LABELS).map(([k, l]) => `<option value="${k}" ${key === k ? 'selected' : ''}>Trier : ${l}</option>`).join('')}</select>
+          <button class="btn ghost sm" data-act="stock-sort-dir" aria-label="Inverser l’ordre">${ui.stockDir > 0 ? '▲ Croissant' : '▼ Décroissant'}</button>
+        </div></div>
       <table class="table mcards">
-        <thead><tr>${th('name', 'Produit')}${th('qty', 'Rayon', 'num')}<th class="num">Entrepôt</th><th class="num">En route</th>${th('days', 'Couverture', 'num')}<th>Péremption</th>${th('value', 'Valeur', 'num')}</tr></thead>
+        <thead><tr>${th('name', 'Produit')}${th('shelf', 'Rayon', 'num')}${th('warehouse', 'Entrepôt', 'num')}${th('transit', 'En route', 'num')}${th('days', 'Couverture', 'num')}${th('expiry', 'Péremption')}${th('value', 'Valeur', 'num')}</tr></thead>
         <tbody>${list.map((p) => {
           const days = daysOfStock(state, p);
           const total = totalQty(state, p.id);
@@ -85,4 +104,11 @@ export function renderStock(state: GameState): string {
   </div>`;
 }
 
-on('stock-sort', (k) => { ui.stockSort = k; store.commit(); });
+on('stock-sort', (k) => {
+  // 1er clic : du plus petit au plus grand ; nouveau clic sur la même colonne : ordre inverse.
+  if (ui.stockSort === k) ui.stockDir = -ui.stockDir;
+  else { ui.stockSort = k; ui.stockDir = 1; }
+  store.commit();
+});
+on('stock-sort-dir', () => { ui.stockDir = -ui.stockDir; store.commit(); });
+onChange('stock-sort-select', (_a, el) => { ui.stockSort = (el as HTMLSelectElement).value; ui.stockDir = 1; store.commit(); });

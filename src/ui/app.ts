@@ -14,6 +14,8 @@ import { initActions, on } from './actions';
 import { initInstall } from './install';
 import { askAccountOnFirstLaunch, cloudPill, setupCloud } from './cloud';
 import { invalidateLeaderboard } from './leaderboard';
+import { startWheelTicker } from './wheel';
+import { canSpin } from '../systems/wheel';
 import { applySearch } from './search';
 import { collectAlerts } from './alerts';
 import { sfx } from './audio';
@@ -64,6 +66,7 @@ function navBadge(state: GameState, id: ScreenId): string {
   if (id === 'orders') { n = state.cart.length; tone = 'green'; }
   if (id === 'stock') n = collectAlerts(state).filter((a) => a.kind === 'rupture' || a.kind === 'expToday').length;
   if (id === 'decor') { n = unseenDecor(state); tone = 'orange'; }
+  if (id === 'dashboard' && canSpin(state)) { n = 1; tone = 'green'; }
   if (id === 'upgrades') { n = UPGRADES.filter((u) => state.level >= u.minLevel && (upgradeCost(state, u.id) ?? Infinity) <= state.cash).length; tone = 'green'; }
   return n ? `<span class="nav-badge ${tone}">${n}</span>` : '';
 }
@@ -197,6 +200,8 @@ export function initApp(): void {
   watchLayers();
   initInstall(() => { if (ui.screen === 'settings') render(); });
   setupCloud(render);
+  // Fin d'un délai (roue prête, bonus terminé) : on rafraîchit l'écran, sauf pendant une saisie ou une fenêtre.
+  startWheelTicker(() => { if (!modalOpen() && !ui.simRunning && !(document.activeElement instanceof HTMLInputElement)) render(); });
   store.subscribe(render);
   store.onDecor = (parts) => {
     toast(parts.length === 1

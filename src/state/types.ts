@@ -134,6 +134,8 @@ export interface GameState {
   pendingLevelUps: number[];
   finalDone: boolean;
   tutorialOff: boolean;
+  /** Roue de la fortune : dernier tour (horodatage réel) et bonus temporaires en cours. */
+  wheel?: { lastSpin: number; boosts: { kind: 'traffic' | 'xp' | 'supplier' | 'price' | 'express' | 'rep'; value: number; until: number }[] };
   /** Succursales achetées. */
   branches?: string[];
   /** Acheteur automatique (amélioration « Responsable des achats »). */
