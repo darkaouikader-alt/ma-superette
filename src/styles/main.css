@@ -187,6 +187,16 @@ th.sortable { cursor: pointer; user-select: none; } th.sortable:hover, th.sorted
 .rp-decor { display: flex; flex-wrap: wrap; gap: 6px; }
 .rp-decor span { background: var(--card); padding: 4px 10px; border-radius: 99px; font-weight: 700; font-size: 0.85rem; }
 .span-all { grid-column: 1 / -1; }
+.cloud-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 0.78rem; font-weight: 700; color: var(--muted); padding: 3px 9px; border-radius: 99px; background: var(--grey-soft); white-space: nowrap; }
+.cloud-pill.synced { background: var(--accent-soft); color: var(--accent-ink); }
+.cloud-pill.error, .cloud-pill.conflict { background: var(--red-soft); color: var(--red); }
+.cloud-pill.syncing > span:first-child, .cloud-pill.syncing { animation: blink 1.2s infinite; }
+.sidebar-foot .cloud-pill { max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+.cloud-form { display: flex; flex-direction: column; gap: 10px; margin: 8px 0; }
+.cloud-form label { display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 0.88rem; }
+.cloud-form input { padding: 10px 12px; font-size: 16px; }
+.conflict-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+.conflict-card { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 16px; background: var(--grey-soft); }
 .promo-summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
 .promo-note { color: var(--purple); font-weight: 800; margin-top: 4px; }
 .nav-badge.inline { display: inline-grid; position: static; min-width: 20px; height: 20px; margin-left: 4px; font-size: 0.7rem; vertical-align: middle; }
@@ -422,6 +432,7 @@ th.sortable { cursor: pointer; user-select: none; } th.sortable:hover, th.sorted
   .milestones { grid-template-columns: 1fr; }
   .nav-short { font-size: 0.58rem; }
   .promo-summary { grid-template-columns: 1fr; gap: 10px; }
+  .conflict-grid { grid-template-columns: 1fr; }
   .table.prices td.m-wide { flex-wrap: wrap; }
   .coach { flex-direction: column; align-items: stretch; gap: 8px; }
   .coach-icon { display: none; }

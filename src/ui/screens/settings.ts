@@ -6,6 +6,8 @@ import { sfx } from '../audio';
 import { confirmDialog } from '../modal';
 import { toast } from '../toast';
 import { ui } from '../uiState';
+import { cloudCard } from '../cloud';
+import { cloudUser } from '../../cloud/sync';
 import { canPromptInstall, isIos, isStandalone, promptInstall } from '../install';
 
 function installCard(): string {
@@ -43,6 +45,7 @@ export function renderSettings(state: GameState): string {
         <button class="btn danger" data-act="reset-game">🗑️ Réinitialiser</button></div>
       <p class="muted small">Dernière sauvegarde : jour ${state.day}, ${state.phase === 'morning' ? 'matin' : 'bilan'}.</p>
     </section>
+    ${cloudCard()}
     ${installCard()}
     <section class="card">
       <div class="card-head"><h2>Aide</h2></div>
@@ -66,12 +69,12 @@ on('setting-toggle', (key) => {
   store.commit();
   sfx.click();
 });
-on('new-game', () => confirmDialog('Nouvelle partie ?', 'Ta partie en cours sera remplacée. Tes réglages (son, thème, vitesse) sont conservés.', 'Recommencer', () => {
+on('new-game', () => confirmDialog('Nouvelle partie ?', `Ta partie en cours sera remplacée. Tes réglages (son, thème, vitesse) sont conservés.${cloudUser() ? ' ⚠️ Tu es connecté : la partie en ligne sera aussi remplacée sur tous tes appareils.' : ''}`, 'Recommencer', () => {
   ui.screen = 'dashboard';
   store.newGame();
   toast('🏪 Nouvelle partie : bonne chance !', 'success');
 }));
-on('reset-game', () => confirmDialog('Tout réinitialiser ?', 'La sauvegarde et tous les réglages seront effacés définitivement.', 'Tout effacer', () => {
+on('reset-game', () => confirmDialog('Tout réinitialiser ?', `La sauvegarde et tous les réglages seront effacés définitivement.${cloudUser() ? ' ⚠️ Tu es connecté : la partie en ligne sera aussi remplacée sur tous tes appareils.' : ''}`, 'Tout effacer', () => {
   ui.screen = 'dashboard';
   store.reset();
   toast('Sauvegarde effacée. Nouvelle partie lancée.', 'info');

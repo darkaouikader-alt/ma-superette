@@ -79,6 +79,18 @@ Onglet **🎨 Façade** : 9 emplacements (façade, toit, auvent, enseigne, porte
 - **Ajouter un élément** : une ligne `D(...)` dans `src/data/decor.ts` (emplacement, thème, statut, charme,
   condition de gain, apparence). Réglages des effets : `DECOR_BALANCE`.
 
+## Compte et synchronisation (plusieurs appareils)
+
+Réglages → **☁️ Compte et synchronisation** : connexion par e-mail et mot de passe (Firebase
+Authentication), partie stockée dans Firestore (`saves/{uid}`), envoyée automatiquement quelques
+secondes après chaque sauvegarde et récupérée à l'ouverture sur les autres appareils. Si deux appareils
+ont avancé chacun de leur côté, le jeu demande quelle partie garder (jamais d'écrasement silencieux).
+
+- Code : `src/cloud/sync.ts` (logique), `src/ui/cloud.ts` (écran), identifiants dans `src/cloud/config.ts`.
+- Sans identifiants (`FIREBASE_CONFIG = null`), le jeu reste 100 % local.
+- Disponible uniquement sur les sites listés dans `CLOUD_HOSTS` (version GitHub Pages).
+- Tests : `tests/cloud.test.ts` simule la base en ligne et plusieurs appareils.
+
 ## Mise en ligne
 
 Voir **[DEPLOIEMENT.md](DEPLOIEMENT.md)** : Netlify Drop (archive prête dans `deploy/`) ou GitHub Pages

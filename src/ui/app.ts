@@ -12,6 +12,7 @@ import { runDay } from '../systems/simulation';
 import { slotCapacity, warehouseQty } from '../systems/stock';
 import { initActions, on } from './actions';
 import { initInstall } from './install';
+import { cloudPill, setupCloud } from './cloud';
 import { collectAlerts } from './alerts';
 import { sfx } from './audio';
 import { renderDebug } from './debug';
@@ -85,7 +86,7 @@ function render(): void {
       <div class="sidebar-foot">
         <button class="btn icon" data-act="quick-sound" title="Son">${state.settings.sound ? '🔊' : '🔇'}</button>
         <button class="btn icon" data-act="quick-dark" title="Thème">${state.settings.dark ? '🌙' : '☀️'}</button>
-        <span class="muted small">Sauvegarde auto ✓</span>
+        ${cloudPill()}
       </div>
     </aside>
     <div class="main">
@@ -160,6 +161,7 @@ on('open-store', () => {
 export function initApp(): void {
   initActions();
   initInstall(() => { if (ui.screen === 'settings') render(); });
+  setupCloud(render);
   store.subscribe(render);
   store.onDecor = (parts) => {
     toast(parts.length === 1

@@ -17,10 +17,16 @@ function defaultStorage(): StorageLike | null {
   }
 }
 
+type SaveListener = (state: GameState) => void;
+const saveListeners: SaveListener[] = [];
+/** Prévenu après chaque sauvegarde locale réussie (utilisé par la synchronisation en ligne). */
+export const onGameSaved = (fn: SaveListener) => { saveListeners.push(fn); };
+
 export function saveGame(state: GameState, storage: StorageLike | null = defaultStorage()): boolean {
   if (!storage) return false;
   try {
     storage.setItem(SAVE_KEY, JSON.stringify(state));
+    if (storage === defaultStorage()) for (const fn of saveListeners) fn(state);
     return true;
   } catch {
     return false;
@@ -34,7 +40,15 @@ export function saveGame(state: GameState, storage: StorageLike | null = default
 export function loadGame(fresh: GameState, storage: StorageLike | null = defaultStorage()): GameState | null {
   if (!storage) return null;
   try {
-    const raw = storage.getItem(SAVE_KEY);
+    return parseSave(fresh, storage.getItem(SAVE_KEY));
+  } catch {
+    return null;
+  }
+}
+
+/** Lit une sauvegarde au format texte (stockage local ou copie en ligne). */
+export function parseSave(fresh: GameState, raw: string | null): GameState | null {
+  try {
     if (!raw) return null;
     const data = JSON.parse(raw) as Partial<GameState>;
     if (!data || typeof data !== 'object' || data.version !== SAVE_VERSION) return null;
