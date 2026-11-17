@@ -187,6 +187,21 @@ th.sortable { cursor: pointer; user-select: none; } th.sortable:hover, th.sorted
 .rp-decor { display: flex; flex-wrap: wrap; gap: 6px; }
 .rp-decor span { background: var(--card); padding: 4px 10px; border-radius: 99px; font-weight: 700; font-size: 0.85rem; }
 .span-all { grid-column: 1 / -1; }
+/* Historique des 7 derniers jours */
+.week-totals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.week-totals > div { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 14px; background: var(--grey-soft); min-width: 0; }
+.week-totals b { font-family: var(--font-head); font-size: 1.15rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.trend { font-size: 0.76rem; font-weight: 800; } .trend.up { color: var(--accent-ink); } .trend.down { color: var(--red); } .trend.flat { color: var(--muted); }
+.day-list { display: flex; flex-direction: column; margin-top: 12px; }
+.day-row { display: grid; grid-template-columns: 1.6fr 0.9fr 1fr 1.2fr 1.1fr 0.9fr; gap: 8px; align-items: center; text-align: left; padding: 9px 10px; border: 0; border-top: 1px solid var(--line); background: none; font-size: 0.9rem; font-variant-numeric: tabular-nums; cursor: pointer; border-radius: 10px; transition: background 0.12s; }
+.day-row:hover { background: var(--grey-soft); }
+.day-row.head { cursor: default; border-top: 0; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 800; padding-top: 0; }
+.day-row.head:hover { background: none; }
+.day-row.best { background: color-mix(in srgb, var(--accent-soft) 55%, transparent); }
+.day-highlights { letter-spacing: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.detail-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
+.modal.wide.day-modal { width: min(1000px, 100%); }
+.rp-line b { white-space: nowrap; }
 .cloud-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 0.78rem; font-weight: 700; color: var(--muted); padding: 3px 9px; border-radius: 99px; background: var(--grey-soft); white-space: nowrap; }
 .cloud-pill.synced { background: var(--accent-soft); color: var(--accent-ink); }
 .cloud-pill.error, .cloud-pill.conflict { background: var(--red-soft); color: var(--red); }
@@ -432,6 +447,13 @@ th.sortable { cursor: pointer; user-select: none; } th.sortable:hover, th.sorted
   .milestones { grid-template-columns: 1fr; }
   .nav-short { font-size: 0.58rem; }
   .promo-summary { grid-template-columns: 1fr; gap: 10px; }
+  .week-totals { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .day-row { grid-template-columns: 1fr 1fr; gap: 3px 10px; padding: 10px 6px; }
+  .day-row.head { display: none; }
+  .day-row .day-name { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .day-row [data-label]::before { content: attr(data-label) " : "; color: var(--muted); font-size: 0.75rem; }
+  .day-row .day-highlights { grid-column: 1 / -1; }
+  .detail-grid { grid-template-columns: 1fr; }
   .conflict-grid { grid-template-columns: 1fr; }
   .table.prices td.m-wide { flex-wrap: wrap; }
   .coach { flex-direction: column; align-items: stretch; gap: 8px; }

@@ -15,6 +15,7 @@ import { toast } from '../toast';
 import { ui } from '../uiState';
 import { PRODUCT_BY_ID } from '../../data/products';
 import { unseenDecor } from './decor';
+import { historyCard } from '../history';
 
 interface Coach { title: string; text: string; cta?: string; screen?: string }
 
@@ -112,6 +113,7 @@ export function renderDashboard(state: GameState): string {
         <div class="card-head"><h2>📈 Chiffre d'affaires — 14 derniers jours</h2></div>
         ${revenueChart(state.history)}
       </section>
+      ${historyCard(state)}
     </div>
     <div class="col">
       <section class="card">
