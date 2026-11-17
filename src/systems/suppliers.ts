@@ -117,17 +117,62 @@ export function fastestSupplier(p: Product, state: GameState): SupplierDef | nul
 }
 
 /** Quantité à commander pour couvrir les prochains jours (ventes moyennes récentes). */
+/** Unités de ce produit livrées le matin du jour `day` (commandes en cours). */
+export function arrivalsOn(state: GameState, pid: string, day: number): number {
+  let q = 0;
+  for (const o of state.orders) if (o.arrivalDay === day) for (const l of o.lines) if (l.productId === pid) q += l.qty;
+  return q;
+}
+
+/**
+ * Nombre de jours avant la rupture, en tenant compte de la date d'arrivée de chaque
+ * livraison en cours (une livraison dans 3 jours ne remplit pas le rayon demain).
+ */
+export function daysUntilEmpty(state: GameState, p: Product, horizon = 10): number {
+  let stock = totalQty(state, p.id);
+  for (let d = 0; d < horizon; d++) {
+    const day = state.day + d;
+    if (d > 0) stock += arrivalsOn(state, p.id, day);
+    const dem = forecastDemand(state, p, day, 1);
+    if (stock < dem * 0.999) return d;
+    stock -= dem;
+  }
+  return horizon;
+}
+
+/**
+ * Quantité à commander chez `sup` pour couvrir les jours suivant sa livraison.
+ * Simulation jour par jour : ventes prévues, livraisons déjà en route à leur date,
+ * produits qui périment avant l'arrivée.
+ */
 export function reorderQty(state: GameState, p: Product, sup: SupplierDef, coverScale = 1): number {
   const delay = effectiveDelay(sup, state);
   const arrival = state.day + delay;
   // Produits très frais : on ne couvre que ce qui peut être vendu avant péremption.
-  const cover = Math.max(1, Math.min(BALANCE.REORDER_COVER_DAYS, (p.shelfLife ?? 99) - 1));
-  const want = forecastDemand(state, p, arrival, cover) * BALANCE.REORDER_SAFETY * coverScale;
-  // Les unités qui périment avant l'arrivée ne comptent pas (elles sont vendues en premier).
-  const dying = expiringBy(state, p.id, arrival - 1);
-  const soldBefore = Math.max(0, forecastDemand(state, p, state.day, delay) - dying);
-  const atArrival = Math.max(0, totalQty(state, p.id) - dying + inTransit(state, p.id) - soldBefore);
-  return Math.max(0, want - atArrival);
+  const baseCover = Math.max(1, Math.min(BALANCE.REORDER_COVER_DAYS, (p.shelfLife ?? 99) - 1));
+  const window = Math.max(1, Math.round(baseCover * coverScale));
+  let stock = totalQty(state, p.id);
+  let dying = expiringBy(state, p.id, arrival - 1);
+  let need = 0;
+  for (let day = state.day; day < arrival + window; day++) {
+    if (day > state.day) stock += arrivalsOn(state, p.id, day);
+    const dem = forecastDemand(state, p, day, 1);
+    if (day === arrival) {
+      // Ce qui n'a pas été vendu parmi les unités périssables est jeté avant l'arrivée.
+      stock = Math.max(0, stock - dying);
+      dying = 0;
+    }
+    if (day < arrival) {
+      const sold = Math.min(stock, dem);
+      dying = Math.max(0, dying - sold);
+      stock -= sold;
+    } else {
+      const want = dem * BALANCE.REORDER_SAFETY;
+      if (stock >= want) stock -= want;
+      else { need += want - stock; stock = 0; }
+    }
+  }
+  return need;
 }
 
 /**

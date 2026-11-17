@@ -8,7 +8,7 @@ import { expectedDemand, suggestedPrice, roundPrice, takeLoan, canTakeLoan } fro
 import { buyLicence, buyUpgrade, categoryLevel, checkLongObjectives, sellableProducts, upgradeCost } from '../src/systems/progression';
 import { runDay, startNextDay } from '../src/systems/simulation';
 import { autoArrange, totalQty } from '../src/systems/stock';
-import { autoReorder, fastestSupplier, placeOrders, setCartLots, inTransit, cartView } from '../src/systems/suppliers';
+import { autoReorder, fastestSupplier, placeOrders, setCartLots, inTransit, cartView, storageCommitted, storageCapacity } from '../src/systems/suppliers';
 import { BALANCE, WEEKDAYS } from '../src/data/constants';
 import { DECOR_PARTS, DECOR_SLOTS } from '../src/data/decor';
 import { canEquip, charmSummary, checkDecorUnlocks, equipPart, partCharm } from '../src/systems/decor';
@@ -24,6 +24,7 @@ console.log(' Jour      | Clients (déçus) |     CA |  Marge | Charges | Pertes
 
 for (let i = 0; i < days; i++) {
   let orderErr = '';
+  const cashMorning = state.cash;
   // 1. Prix
   for (const p of sellableProducts(state)) state.prices[p.id] = roundPrice(suggestedPrice(p, state) * priceMult);
   // 2. Améliorations (garde une réserve de trésorerie)
@@ -32,7 +33,7 @@ for (let i = 0; i < days; i++) {
   for (const c of CATEGORIES) {
     if (c.licence && !state.licences.includes(c.id) && state.level >= categoryLevel(c.id) && state.cash > c.licence + reserve) buyLicence(state, c.id);
   }
-  const prio = ['cashier', 'fridge', 'stocker', 'freezer', 'shelves', 'warehouse', 'deco', 'sign', 'billboard', 'express'];
+  const prio = [...['cashier', 'fridge', 'stocker'], ...(process.env.NO_BUYER ? [] : ['buyer']), 'freezer', 'shelves', 'warehouse', 'deco', 'sign', 'billboard', 'express'];
   for (const id of prio) {
     const cost = upgradeCost(state, id);
     const def = UPGRADES.find((u) => u.id === id)!;
@@ -78,7 +79,7 @@ for (let i = 0; i < days; i++) {
     r.essentialStockouts.length ? `ruptures ess: ${r.essentialStockouts.length}` : '',
     r.queueLost ? `file: -${r.queueLost}` : '',
     r.objectivesDone.length ? `obj: ${r.objectivesDone.length}` : '',
-    r.eventIds.join(','), orderErr,
+    r.eventIds.join(','), orderErr, process.env.SHOW_BUYER && state.buyer?.last?.day === r.day ? `caisse matin ${Math.round(cashMorning + (state.buyer?.last?.day === state.day ? state.buyer.last.total : 0))}€ · ach: ${state.buyer.last.products}p ${state.buyer.last.total.toFixed(0)}€ skip ${state.buyer.last.skipped}` : '', process.env.SHOW_BUYER ? `stock ${Math.round(storageCommitted(state))}/${storageCapacity(state)}` : '',
   ].filter(Boolean).join(' · ');
   console.log(
     `${pad(r.day, 3)} ${WEEKDAYS[(r.day - 1) % 7].slice(0, 3)}   | ${pad(r.customersServed, 4)} /${pad(r.customersPotential, 4)} (${pad(r.disappointedStock + r.disappointedPrice, 3)}) |` +

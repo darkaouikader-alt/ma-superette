@@ -135,6 +135,14 @@ export const BALANCE = {
   /** Réputation par jour quand au moins un essentiel est en promo. */
   PROMO_REP_ESSENTIAL: 0.4,
 
+  // Acheteur automatique
+  /** Jours de ventes couverts par les commandes de l'acheteur (choix proposés). */
+  BUYER_COVER_CHOICES: [2, 3, 5],
+  /** Trésorerie minimale que l'acheteur laisse en caisse (choix proposés, en €). */
+  BUYER_RESERVE_CHOICES: [200, 500, 1000, 3000],
+  /** Seuil « stock faible » (jours de ventes restants). */
+  LOW_STOCK_DAYS: 1.2,
+
   // Réassort automatique
   REORDER_COVER_DAYS: 2,
   REORDER_SAFETY: 1.15,

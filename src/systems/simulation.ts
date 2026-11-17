@@ -14,6 +14,7 @@ import { makeRng, stochRound } from './rng';
 import { assortment, expireStock, fillAll, sellFromShelf, shelfCapacityFor, shelfQty, slotCapacity, totalQty, warehouseQty, coldCapacity, coldUsed } from './stock';
 import { receiveDeliveries } from './suppliers';
 import { expirePromotions } from './promotions';
+import { runBuyer } from './buyer';
 import { charmSummary, checkDecorUnlocks } from './decor';
 
 export interface SimSale { pid: string; qty: number; amount: number }
@@ -235,6 +236,11 @@ export function startNextDay(state: GameState): void {
   news.push(...rollEvents(state, makeRng(state.seed * 13 + state.day * 331)));
   refreshSellable(state);
   ensureObjectives(state);
+  const bought = runBuyer(state);
+  if (bought && bought.products) {
+    news.push(`🧑‍💼 Ton responsable des achats a commandé ${bought.products} produit${bought.products > 1 ? 's' : ''} pour ${bought.total.toFixed(2).replace('.', ',')} €${bought.saved >= 1 ? ` (${Math.round(bought.saved)} € économisés en choisissant les meilleurs prix)` : ''}.`);
+  }
+  if (bought && bought.skipped) news.push(`🧑‍💼 ${bought.skipped} produit${bought.skipped > 1 ? 's n’ont' : ' n’a'} pas pu être commandé${bought.skipped > 1 ? 's' : ''} : trésorerie ou place insuffisante.`);
   if (up(state, 'stocker') > 0) stockerPlacement(state);
   if (state.loan) news.push(`🏦 Prêt en cours : ${state.loan.remaining.toFixed(2).replace('.', ',')} € restants.`);
   if (state.cash < BALANCE.LOAN_TRIGGER_CASH && canTakeLoan(state)) news.push('🏦 Caisse à sec : un prêt d’urgence est proposé plus bas sur cette page.');

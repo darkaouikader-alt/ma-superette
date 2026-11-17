@@ -12,8 +12,12 @@ import { autoReorder, cartLots, cartView, effectiveDelay, inTransit, linePrice, 
 import { on } from '../actions';
 import { productBadges } from '../alerts';
 import { sfx } from '../audio';
-import { badge, esc, gauge, money, newBadge, num, num1, pastille, plural } from '../dom';
+import { badge, esc, gauge, money, money0, newBadge, num, num1, pastille, plural } from '../dom';
 import { toast } from '../toast';
+import { BALANCE } from '../../data/constants';
+import { levelDef } from '../../data/levels';
+import { UPGRADE_BY_ID } from '../../data/upgrades';
+import { addUrgentToCart, buyerSettings, hasBuyer, lowStockProducts, ruptureProducts, runBuyer } from '../../systems/buyer';
 import { applySearch, currentSearch, matchesSearch, onSearchApplied, searchAttrs, searchBox, searchKey } from '../search';
 import { saveGame } from '../../state/save';
 import { ui } from '../uiState';
@@ -58,6 +62,7 @@ export function renderOrders(state: GameState): string {
   <div class="screen-head">
     <div><h1>🚚 Commandes</h1><p class="muted">Chaque fournisseur a son délai, sa taille de lot et sa remise de volume. Les livraisons arrivent le matin, dans l’entrepôt.</p></div>
   </div>
+  ${quickBuyBar(state)}
   ${mods.supplierCost > 1 ? `<div class="banner orange">📈 Hausse des prix fournisseur en cours : +${Math.round((mods.supplierCost - 1) * 100)} % sur tous les tarifs.</div>` : ''}
   ${mods.deliveryDelay > 0 ? `<div class="banner red">🚧 Grève des livraisons : +${mods.deliveryDelay} jour de délai sur les commandes passées aujourd'hui.</div>` : ''}
   <div class="orders-grid">
@@ -95,6 +100,7 @@ export function renderOrders(state: GameState): string {
       </section>
     </div>
     <div class="col side">
+      ${buyerCard(state)}
       <div class="cart-dock ${ui.cartOpen ? 'open' : ''}" id="cart-dock"><div class="cart-dock-inner" id="cart-box">${cartPanel(state)}</div></div>
       <section class="card">
         <div class="card-head"><h2>📦 Livraisons en cours</h2></div>
@@ -133,6 +139,43 @@ onSearchApplied('orders', () => {
     ? `<span class="small muted">Aussi chez :</span> ${others.map((x) => `<button class="chip" data-act="supplier" data-arg="${x.s.id}">${x.s.emoji} ${esc(x.s.name)} (${x.n})</button>`).join('')}`
     : '';
 });
+
+/** Boutons « commander les ruptures / le stock faible ». */
+function quickBuyBar(state: GameState): string {
+  const rupt = ruptureProducts(state).length;
+  const low = lowStockProducts(state).length;
+  return `<section class="card quick-buy">
+    <div><b>⚡ Achats rapides</b><span class="small muted">Au panier chez le fournisseur le plus rapide, pour couvrir les prochains jours.</span></div>
+    <div class="row-gap">
+      <button class="btn ${rupt ? 'danger' : 'ghost'} sm" data-act="quick-buy" data-arg="rupture" ${rupt ? '' : 'disabled'}>🚫 Tout ce qui est en rupture (${rupt})</button>
+      <button class="btn ghost sm" data-act="quick-buy" data-arg="low" ${low ? '' : 'disabled'}>⚠️ Stock faible (${low})</button>
+    </div>
+  </section>`;
+}
+
+/** Carte du responsable des achats (acheteur automatique). */
+function buyerCard(state: GameState): string {
+  const def = UPGRADE_BY_ID.buyer;
+  const head = `<div class="card-head"><h2>${def.emoji} Responsable des achats</h2>${hasBuyer(state) ? `<button class="switch ${buyerSettings(state).enabled ? 'on' : ''}" data-act="buyer-toggle" role="switch" aria-checked="${buyerSettings(state).enabled}" aria-label="Activer les achats automatiques"><i></i></button>` : ''}</div>`;
+  if (!hasBuyer(state)) {
+    const locked = state.level < def.minLevel;
+    return `<section class="card buyer ${locked ? 'locked' : ''}">${head}
+      <p class="small muted">Un employé qui passe les commandes chaque matin à ta place, au meilleur prix, en s’assurant que la livraison arrive avant la rupture.</p>
+      ${locked
+        ? `${badge(`🔒 Niveau ${def.minLevel} requis (${esc(levelDef(def.minLevel).name)})`, 'grey')}${gauge((state.level / def.minLevel) * 100, 'purple')}`
+        : `<button class="btn primary sm block" data-act="nav" data-arg="upgrades">Embaucher · ${money0(def.costs[0])} (+${def.salary} €/jour)</button>`}
+    </section>`;
+  }
+  const cfg = buyerSettings(state);
+  const last = cfg.last;
+  return `<section class="card buyer">${head}
+    <p class="small ${cfg.enabled ? 'pos' : 'muted'}"><b>${cfg.enabled ? 'Actif : il commande chaque matin' : 'En pause : tu commandes toi-même'}</b></p>
+    <div class="buyer-opt"><span class="small muted">Stock visé</span><div class="tabs sm">${BALANCE.BUYER_COVER_CHOICES.map((d) => `<button class="${cfg.coverDays === d ? 'on' : ''}" data-act="buyer-cover" data-arg="${d}">${d} jours</button>`).join('')}</div></div>
+    <div class="buyer-opt"><span class="small muted">Garder en caisse</span><div class="tabs sm">${BALANCE.BUYER_RESERVE_CHOICES.map((r) => `<button class="${cfg.reserve === r ? 'on' : ''}" data-act="buyer-reserve" data-arg="${r}">${money0(r)}</button>`).join('')}</div></div>
+    ${last ? `<p class="small muted">Jour ${last.day} : ${last.products} produit${last.products > 1 ? 's' : ''} commandé${last.products > 1 ? 's' : ''} pour ${money(last.total)}${last.saved >= 1 ? ` · <span class="pos">${money0(last.saved)} économisés</span>` : ''}${last.skipped ? ` · <span class="warn">${last.skipped} non commandé${last.skipped > 1 ? 's' : ''} (budget)</span>` : ''}</p>` : ''}
+    <button class="btn ghost sm block" data-act="buyer-run" ${cfg.enabled ? '' : 'disabled'}>🧑‍💼 Commander maintenant</button>
+  </section>`;
+}
 
 function cartPanel(state: GameState): string {
   const cart = cartView(state);
@@ -209,6 +252,27 @@ on('cart-lots', (arg) => {
   if (!isSellable(PRODUCT_BY_ID[pid], store.state)) return;
   setCartLots(store.state, sid, pid, cartLots(store.state, sid, pid) + Number(d));
   refreshOrderParts([pid]);
+});
+on('quick-buy', (kind) => {
+  const list = kind === 'rupture' ? ruptureProducts(store.state) : lowStockProducts(store.state);
+  const r = addUrgentToCart(store.state, list);
+  toast(r.added
+    ? `⚡ ${plural(r.added, 'produit ajouté', 'produits ajoutés')} au panier${r.skipped ? ` (${r.skipped} manquent de budget ou de place)` : ''}. Vérifie puis valide.`
+    : 'Rien n’a pu être ajouté : trésorerie ou place insuffisante.', r.added ? 'success' : 'error');
+  if (r.added) { ui.cartOpen = true; document.body.classList.add('sheet-open'); }
+  store.commit();
+});
+on('buyer-toggle', () => { const c = buyerSettings(store.state); c.enabled = !c.enabled; sfx.click(); store.commit(); });
+on('buyer-cover', (d) => { buyerSettings(store.state).coverDays = Number(d); store.commit(); });
+on('buyer-reserve', (r) => { buyerSettings(store.state).reserve = Number(r); store.commit(); });
+on('buyer-run', () => {
+  const r = runBuyer(store.state);
+  if (!r) return;
+  toast(r.products
+    ? `🧑‍💼 ${plural(r.products, 'produit commandé', 'produits commandés')} pour ${money(r.total)}${r.saved >= 1 ? ` · ${money0(r.saved)} économisés` : ''}.`
+    : 'Rien à commander pour l’instant : le stock et les livraisons couvrent les prochains jours.', r.products ? 'success' : 'info');
+  if (r.products) sfx.success();
+  store.commit();
 });
 on('cart-clear', () => {
   const pids = store.state.cart.map((c) => c.productId);

@@ -79,6 +79,7 @@ export interface DayReport {
   weather: string;
 }
 
+export interface BuyerReport { day: number; products: number; total: number; saved: number; skipped: number }
 export interface Settings { speed: number; sound: boolean; dark: boolean }
 /** Promotion sur un produit : −pct % sur le prix de vente, du jour startDay au jour endDay inclus. */
 export interface Promo { productId: string; pct: number; startDay: number; endDay: number }
@@ -131,6 +132,8 @@ export interface GameState {
   pendingLevelUps: number[];
   finalDone: boolean;
   tutorialOff: boolean;
+  /** Acheteur automatique (amélioration « Responsable des achats »). */
+  buyer?: { enabled: boolean; coverDays: number; reserve: number; last?: BuyerReport };
   /** Partie modifiée avec le mode debug (+€ / +XP) : exclue du classement mondial. */
   cheated?: boolean;
   lastReport: DayReport | null;

@@ -62,6 +62,15 @@ demande produit par produit, plus deux boutons de triche pour tester).
 - **Campagnes** : prospectus, dégustation, radio, réseaux sociaux (`data/campaigns.ts`) — coût immédiat,
   bonus de clients pendant quelques jours.
 
+## Achats rapides et responsable des achats
+
+- **Achats rapides** (Commandes) : « Tout ce qui est en rupture » et « Stock faible » mettent au panier,
+  chez le fournisseur le plus rapide, de quoi couvrir les prochains jours (dans la limite de la caisse et de la place).
+- **Responsable des achats** (amélioration, niveau 5, 1 500 € + 40 €/jour) : chaque matin, commande
+  « juste à temps » chez le fournisseur le moins cher qui livre avant la rupture, les plus urgents d'abord ;
+  réglages : stock visé (2/3/5 jours) et argent à garder en caisse. Code : `src/systems/buyer.ts`.
+- Le calcul des quantités (`reorderQty`) simule les jours un par un, livraisons en cours à leur date d'arrivée.
+
 ## Façade (éléments à gagner)
 
 Onglet **🎨 Façade** : 9 emplacements (façade, toit, auvent, enseigne, porte, vitrines, sol, décoration,
