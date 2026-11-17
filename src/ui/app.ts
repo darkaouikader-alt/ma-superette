@@ -12,7 +12,7 @@ import { runDay } from '../systems/simulation';
 import { slotCapacity, warehouseQty } from '../systems/stock';
 import { initActions, on } from './actions';
 import { initInstall } from './install';
-import { cloudPill, setupCloud } from './cloud';
+import { askAccountOnFirstLaunch, cloudPill, setupCloud } from './cloud';
 import { collectAlerts } from './alerts';
 import { sfx } from './audio';
 import { renderDebug } from './debug';
@@ -180,4 +180,5 @@ export function initApp(): void {
     if (e.key.toLowerCase() === 'd') { ui.debug = !ui.debug; render(); }
   });
   render();
+  askAccountOnFirstLaunch();
 }

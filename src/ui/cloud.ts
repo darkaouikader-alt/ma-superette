@@ -3,7 +3,7 @@ import { WEEKDAYS } from '../data/constants';
 import { levelDef } from '../data/levels';
 import {
   cloudError, cloudStatus, cloudUser, flush, initCloud, lastSyncTime, logOut, reconcile, resetPassword, resolveConflict,
-  signIn, signUp, type CloudStatus, type Conflict, type SaveSummary,
+  signIn, signUp, whenAuthResolved, cloudAvailableHere, type CloudStatus, type Conflict, type SaveSummary,
 } from '../cloud/sync';
 import { store } from '../state/store';
 import { on } from './actions';
@@ -30,6 +30,23 @@ export function cloudPill(): string {
   return `<span class="cloud-pill ${cloudStatus()}" data-cloud-pill title="${esc(text)}">${icon} <span>${esc(text)}</span></span>`;
 }
 
+/** Formulaire de connexion (réutilisé dans les Réglages et la fenêtre d'accueil). */
+function cloudForm(prefix: string, welcome = false): string {
+  return `<form class="cloud-form" data-cloud-form>
+        <label for="${prefix}-email">Adresse e-mail</label>
+        <input id="${prefix}-email" class="cf-email" type="email" autocomplete="username" inputmode="email" placeholder="toi@exemple.fr" />
+        <label for="${prefix}-pass">Mot de passe</label>
+        <input id="${prefix}-pass" class="cf-pass" type="password" autocomplete="${welcome ? 'new-password' : 'current-password'}" placeholder="6 caractères minimum" />
+        <div class="row-gap">
+          ${welcome
+            ? '<button class="btn primary" type="button" data-act="cloud-signup">Créer mon compte</button><button class="btn ghost" type="submit" data-act="cloud-signin">J’ai déjà un compte</button>'
+            : '<button class="btn primary" type="submit" data-act="cloud-signin">Se connecter</button><button class="btn ghost" type="button" data-act="cloud-signup">Créer un compte</button>'}
+        </div>
+        <button class="link small" type="button" data-act="cloud-reset">Mot de passe oublié ?</button>
+        <p class="small neg cf-msg" role="alert"></p>
+      </form>`;
+}
+
 const fmtTime = (t: number | null) => (t ? new Date(t).toLocaleString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'jamais');
 
 export function cloudCard(): string {
@@ -44,16 +61,7 @@ export function cloudCard(): string {
       <p class="muted small">Ici, ta partie est sauvegardée seulement sur cet appareil.</p>`;
   } else if (!u) {
     body = `<p class="muted">Connecte-toi pour retrouver la même partie sur ton téléphone, ta tablette et ton ordinateur.</p>
-      <form class="cloud-form" data-cloud-form>
-        <label>Adresse e-mail<input id="cloud-email" type="email" autocomplete="username" inputmode="email" placeholder="toi@exemple.fr" /></label>
-        <label>Mot de passe<input id="cloud-pass" type="password" autocomplete="current-password" placeholder="6 caractères minimum" /></label>
-        <div class="row-gap">
-          <button class="btn primary" type="submit" data-act="cloud-signin">Se connecter</button>
-          <button class="btn ghost" type="button" data-act="cloud-signup">Créer un compte</button>
-        </div>
-        <button class="link small" type="button" data-act="cloud-reset">Mot de passe oublié ?</button>
-        <p class="small neg" id="cloud-msg" role="alert"></p>
-      </form>
+      ${cloudForm('cloud')}
       <p class="muted small">À la première connexion, la partie de cet appareil est envoyée en ligne. Sur un autre appareil, connecte-toi avec le même compte pour la retrouver.</p>`;
   } else {
     body = `<div class="setting"><div><b>Connecté</b><p class="muted small">${esc(u.email ?? '')}</p></div>${cloudPill()}</div>
@@ -92,6 +100,37 @@ function showConflict(c: Conflict): void {
   });
 }
 
+// ── Premier lancement sur un appareil : proposer de se connecter ou de créer un compte ──
+const WELCOME_KEY = 'ma-superette-accueil-compte';
+const welcomeDone = () => { try { return localStorage.getItem(WELCOME_KEY) === '1'; } catch { return true; } };
+const setWelcomeDone = () => { try { localStorage.setItem(WELCOME_KEY, '1'); } catch { /* stockage indisponible */ } };
+
+function showWelcome(): void {
+  if (welcomeDone() || cloudUser() || !cloudAvailableHere() || document.querySelector('.welcome-modal')) return;
+  openModal({
+    className: 'welcome-modal',
+    dismissable: false,
+    body: `<div class="welcome-head"><span class="welcome-logo">🏪</span>
+        <h2>Bienvenue dans Ma Supérette !</h2>
+        <p class="muted">Crée ton compte pour sauvegarder ta progression en ligne et la retrouver sur tous tes appareils : téléphone, tablette, ordinateur.</p></div>
+      ${cloudForm('welcome', true)}
+      <div class="welcome-skip"><button class="link small" type="button" data-act="welcome-skip">Jouer sans compte pour l’instant</button>
+        <span class="small muted">Tu pourras créer un compte plus tard dans Réglages.</span></div>`,
+    onClose: setWelcomeDone,
+  });
+  setTimeout(() => $<HTMLInputElement>('#welcome-email')?.focus(), 300);
+}
+
+function closeWelcome(): void {
+  if (document.querySelector('.welcome-modal')) closeModal();
+  setWelcomeDone();
+}
+
+on('welcome-skip', () => {
+  closeWelcome();
+  toast('Tu joues sans compte : ta partie est sauvegardée sur cet appareil.', 'info');
+});
+
 export function setupCloud(render: () => void): void {
   // « Entrée » dans le formulaire : pas de rechargement de page (le bouton « Se connecter » fait le travail).
   document.addEventListener('submit', (e) => { if ((e.target as HTMLElement).matches('[data-cloud-form]')) e.preventDefault(); });
@@ -108,6 +147,10 @@ export function setupCloud(render: () => void): void {
     busy: () => ui.simRunning,
     onChange: () => {
       const s = cloudStatus();
+      if (cloudUser() && document.querySelector('.welcome-modal')) {
+        closeWelcome();
+        toast(`👋 Connecté : ${esc(cloudUser()?.email ?? '')}`, 'success');
+      }
       if (s === 'error' && previous !== 'error') toast(`⚠️ ${esc(cloudError())}`, 'error');
       if (s === 'synced' && (previous === 'syncing' && !lastShown)) { lastShown = true; toast('☁️ Partie sauvegardée en ligne.', 'success'); }
       previous = s;
@@ -117,25 +160,33 @@ export function setupCloud(render: () => void): void {
 }
 let lastShown = false;
 
-const field = (id: string) => ($<HTMLInputElement>(`#${id}`)?.value ?? '');
-function message(text: string, ok = false): void {
-  const el = document.getElementById('cloud-msg');
-  if (el) { el.textContent = text; el.className = `small ${ok ? 'pos' : 'neg'}`; }
+/** À appeler une fois l'interface affichée. */
+export function askAccountOnFirstLaunch(): void {
+  if (!cloudAvailableHere() || welcomeDone()) return;
+  whenAuthResolved(() => setTimeout(() => { if (!ui.simRunning) showWelcome(); }, 600));
+}
+
+const formOf = (el: HTMLElement) => el.closest<HTMLFormElement>('[data-cloud-form]')!;
+const field = (el: HTMLElement, cls: string) => formOf(el)?.querySelector<HTMLInputElement>(`.${cls}`)?.value ?? '';
+function message(el: HTMLElement, text: string, ok = false): void {
+  const m = formOf(el)?.querySelector('.cf-msg');
+  if (m) { m.textContent = text; m.className = `small cf-msg ${ok ? 'pos' : 'neg'}`; }
 }
 
 async function withBusy(btn: HTMLElement, fn: () => Promise<string | null>, okText?: string): Promise<void> {
   (btn as HTMLButtonElement).disabled = true;
-  message('');
+  message(btn, '');
   const err = await fn();
   (btn as HTMLButtonElement).disabled = false;
-  if (err) { message(err); sfx.error(); } else if (okText) message(okText, true);
+  if (err) { message(btn, err); sfx.error(); return; }
+  if (okText) message(btn, okText, true);
 }
 
-on('cloud-signin', (_a, el) => { void withBusy(el, () => signIn(field('cloud-email'), field('cloud-pass'))); });
-on('cloud-signup', (_a, el) => { void withBusy(el, () => signUp(field('cloud-email'), field('cloud-pass'))); });
+on('cloud-signin', (_a, el) => { void withBusy(el, () => signIn(field(el, 'cf-email'), field(el, 'cf-pass'))); });
+on('cloud-signup', (_a, el) => { void withBusy(el, () => signUp(field(el, 'cf-email'), field(el, 'cf-pass'))); });
 on('cloud-reset', (_a, el) => {
-  if (!field('cloud-email')) return message('Écris d’abord ton adresse e-mail, puis touche « Mot de passe oublié ».');
-  void withBusy(el, () => resetPassword(field('cloud-email')), '📧 E-mail envoyé : suis le lien pour choisir un nouveau mot de passe.');
+  if (!field(el, 'cf-email')) return message(el, 'Écris d’abord ton adresse e-mail, puis touche « Mot de passe oublié ».');
+  void withBusy(el, () => resetPassword(field(el, 'cf-email')), '📧 E-mail envoyé : suis le lien pour choisir un nouveau mot de passe.');
 });
 on('cloud-sync', () => { void reconcile(); });
 on('cloud-logout', () => { void logOut().then(() => { lastShown = false; toast('Déconnecté. Ta partie reste sur cet appareil.', 'info'); }); });

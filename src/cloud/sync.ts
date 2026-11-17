@@ -45,6 +45,10 @@ let status: CloudStatus = 'off';
 let lastError = '';
 let timer: ReturnType<typeof setTimeout> | null = null;
 let applying = false;
+let authResolved = false;
+const authWaiters: (() => void)[] = [];
+/** Appelle `fn` dès que l'on sait si un joueur est connecté sur cet appareil. */
+export function whenAuthResolved(fn: () => void): void { if (authResolved) fn(); else authWaiters.push(fn); }
 let pendingConflict: { cloudRev: number; cloudData: string } | null = null;
 
 function readMeta(): Meta {
@@ -93,6 +97,7 @@ export function initCloud(h: Hooks): void {
   setStatus('signedOut');
   onAuthStateChanged(auth, (u) => {
     user = u;
+    if (!authResolved) { authResolved = true; authWaiters.splice(0).forEach((fn) => fn()); }
     if (!u) return setStatus('signedOut');
     const meta = readMeta();
     // Autre compte que la dernière fois : on repart de zéro côté synchronisation.
