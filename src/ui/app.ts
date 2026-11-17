@@ -15,7 +15,7 @@ import { initInstall } from './install';
 import { askAccountOnFirstLaunch, cloudPill, setupCloud } from './cloud';
 import { invalidateLeaderboard } from './leaderboard';
 import { startWheelTicker } from './wheel';
-import { shopChip } from './shops';
+import { shopSelect } from './shops';
 import { canSpin } from '../systems/wheel';
 import { applySearch } from './search';
 import { collectAlerts } from './alerts';
@@ -99,13 +99,15 @@ function render(): void {
     <div class="main">
       <header class="topbar">
         <div class="top-chips">
-          ${shopChip(state)}
           <span class="top-chip" title="Jour">📅 <b>J${state.day}</b><span class="m-hide"> · ${WEEKDAYS[weekdayOf(state.day)]}</span></span>
           <span class="top-chip cash ${state.cash < 0 ? 'neg' : ''}" title="Trésorerie">💶 <b id="top-cash">${money(state.cash)}</b></span>
           <span class="top-chip" title="Réputation">⭐ <b>${num(Math.round(state.reputation))}</b><span class="m-hide">/100</span></span>
           <span class="top-chip" title="Niveau du magasin">🏅 <span class="m-hide">Niv. </span><b>${state.level}</b></span>
         </div>
-        <button class="btn primary top-open" data-act="open-store" aria-label="Ouvrir le magasin">🔑 <span class="m-hide">Ouvrir le magasin</span><span class="m-short">Ouvrir</span></button>
+        <div class="top-actions">
+          ${shopSelect(state)}
+          <button class="btn primary top-open" data-act="open-store" aria-label="Ouvrir le magasin">🔑 <span class="m-hide">Ouvrir le magasin</span><span class="m-short">Ouvrir</span></button>
+        </div>
       </header>
       <main class="screen ${ui.entering ? 'enter' : ''}" id="screen">${SCREENS[ui.screen](state)}</main>
     </div>

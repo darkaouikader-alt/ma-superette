@@ -8,7 +8,7 @@ import { managerSalary } from '../systems/shopMeta';
 import {
   activeShop, activeShopIndex, buyShop, delegateBlock, delegateShop, ownsShop, shopCount, shopDef, shopList, switchShop, takeBackShop,
 } from '../systems/shops';
-import { on } from './actions';
+import { on, onChange } from './actions';
 import { sfx } from './audio';
 import { badge, catPastille, esc, money0, num } from './dom';
 import { confetti } from './fx';
@@ -18,36 +18,34 @@ import { ui } from './uiState';
 
 const managerLabel = (e: ShopEntry) => (e.manager ? `${MANAGER_BY_ID[e.manager].emoji} ${MANAGER_BY_ID[e.manager].name}` : '🙋 Géré par toi');
 
-/** Pastille du magasin affiché dans la barre du haut (dès 2 magasins). */
-export function shopChip(state: GameState): string {
+/** Menu déroulant des magasins, à côté de « Ouvrir le magasin » (dès 2 magasins). */
+export function shopSelect(state: GameState): string {
   if (shopCount(state) < 2) return '';
-  const d = shopDef(activeShop(state).id);
-  return `<button class="top-chip shop-chip" data-act="shop-menu" title="Changer de magasin">${d.emoji} <b>${esc(d.name)}</b> ▾</button>`;
-}
-
-function shopMenuBody(state: GameState): string {
   const active = activeShopIndex(state);
-  return `<ul class="shop-menu">${shopList(state).map((e, i) => {
-    const d = shopDef(e.id);
-    return `<li><button class="shop-menu-item ${i === active ? 'on' : ''}" data-act="shop-switch" data-arg="${i}">
-      <span class="shop-emoji">${d.emoji}</span><span><b>${esc(d.name)}</b><span class="small muted">${managerLabel(e)}${e.last ? ` · hier ${money0(e.last.revenue)} de CA` : ''}</span></span>
-      ${i === active ? badge('Affiché', 'green') : ''}</button></li>`;
-  }).join('')}</ul>
-  <p class="small muted">Trésorerie, niveau, licences et façade sont communs à tous tes magasins. Rayons, stock, prix, commandes, équipement et réputation sont propres à chacun.</p>`;
+  return `<label class="shop-select" title="Changer de magasin">
+    <span class="sr-only">Magasin affiché</span>
+    <select data-change="shop-select" aria-label="Magasin affiché">${shopList(state).map((e, i) => {
+      const d = shopDef(e.id);
+      return `<option value="${i}" ${i === active ? 'selected' : ''}>${d.emoji} ${esc(d.name)}${e.manager ? ` · ${MANAGER_BY_ID[e.manager].emoji} gérant` : ''}</option>`;
+    }).join('')}</select>
+  </label>`;
 }
 
-on('shop-menu', () => openModal({ title: '🏪 Mes magasins', body: shopMenuBody(store.state) }));
+onChange('shop-select', (_arg, el) => switchTo(Number((el as HTMLSelectElement).value)));
+
 
 on('shop-switch', (arg) => {
-  if (ui.simRunning) return;
-  const i = Number(arg);
   closeModal();
-  if (i === activeShopIndex(store.state)) return;
+  switchTo(Number(arg));
+});
+
+function switchTo(i: number): void {
+  if (ui.simRunning || i === activeShopIndex(store.state) || !shopList(store.state)[i]) return;
   switchShop(store.state, i);
   ui.entering = true;
   toast(`${shopDef(activeShop(store.state).id).emoji} Tu gères maintenant : ${esc(shopDef(activeShop(store.state).id).name)}.`, 'info');
   store.commit();
-});
+}
 
 /** Bandeau d'un magasin confié à un gérant (tableau de bord). */
 export function delegatedBanner(state: GameState): string {
@@ -90,7 +88,7 @@ export function shopsSection(state: GameState): string {
   const list = shopList(state);
   const toBuy = SHOPS.filter((d) => !ownsShop(state, d.id));
   return `<h2 class="group-title">🏪 Mes magasins</h2>
-  <p class="muted small group-note">De vrais magasins que tu gères : chacun a ses rayons, son stock, ses prix et son équipement. Dès ${MIN_SHOPS_TO_DELEGATE} magasins, tu peux en confier à un gérant, mais tu dois toujours en garder au moins un. Change de magasin avec le bouton en haut de l’écran.</p>
+  <p class="muted small group-note">De vrais magasins que tu gères : chacun a ses rayons, son stock, ses prix et son équipement. Dès ${MIN_SHOPS_TO_DELEGATE} magasins, tu peux en confier à un gérant, mais tu dois toujours en garder au moins un. Change de magasin avec le menu déroulant en haut de l’écran, à côté de « Ouvrir le magasin ».</p>
   <section class="upgrade-grid">${list.map((e, i) => ownedCard(state, e, i)).join('')}${toBuy.map((d) => buyCard(state, d)).join('')}</section>`;
 }
 
