@@ -50,8 +50,8 @@ Version « une seule page » (tout inliné, pratique pour un partage rapide) :
 2. **« Ouvrir le magasin »** : la journée se déroule seule (vitesse x1 / x2 / x4, pause).
 3. **Bilan** : chiffre d'affaires, marge, charges, clients déçus, ruptures, périmés, réputation, objectifs.
 
-La partie est sauvegardée automatiquement dans `localStorage`. Touche **D** : mode debug (formules de
-demande produit par produit, plus deux boutons de triche pour tester).
+La partie est sauvegardée automatiquement dans `localStorage`. Pour l'équilibrage, utiliser le bot
+`npm run simulate` (le mode debug du jeu a été retiré : il permettait de tricher).
 
 ## Promotions
 
@@ -154,7 +154,7 @@ src/
     simulation.ts   déroulé d'une journée + passage au jour suivant
   state/       types.ts (modèle), store.ts (état + nouvelle partie), save.ts (localStorage)
   ui/          app.ts (coquille), simulation.ts (journée animée), report.ts (bilan),
-               composants (modal, toast, fx, audio, chart, storefront, debug), screens/ (8 écrans)
+               composants (modal, toast, fx, audio, chart, storefront), screens/ (8 écrans)
 tests/         tests unitaires Vitest
 scripts/       simulate.ts (bot d'équilibrage)
 ```

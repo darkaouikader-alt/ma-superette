@@ -20,7 +20,6 @@ import { canSpin } from '../systems/wheel';
 import { applySearch } from './search';
 import { collectAlerts } from './alerts';
 import { sfx } from './audio';
-import { renderDebug } from './debug';
 import { $, esc, money, money0, num } from './dom';
 import { animateNumber } from './fx';
 import { confirmDialog, modalOpen } from './modal';
@@ -110,7 +109,7 @@ function render(): void {
       </header>
       <main class="screen ${ui.entering ? 'enter' : ''}" id="screen">${SCREENS[ui.screen](state)}</main>
     </div>
-  </div>${renderDebug(state)}`;
+  </div>`;
   const newScroller = $('.main', app);
   if (ui.entering) {
     window.scrollTo(0, 0);
@@ -223,11 +222,6 @@ export function initApp(): void {
     }
     if (done.some((o) => o.id === 'final')) announceFinal();
   };
-  document.addEventListener('keydown', (e) => {
-    const t = e.target as HTMLElement;
-    if (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (e.key.toLowerCase() === 'd') { ui.debug = !ui.debug; render(); }
-  });
   render();
   askAccountOnFirstLaunch();
 }

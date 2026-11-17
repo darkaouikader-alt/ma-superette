@@ -84,7 +84,7 @@ export async function chooseUsername(name: string, state: GameState): Promise<st
 export function rankingProblem(state: GameState): string | null {
   if (!cloudUser()) return 'Crée un compte pour apparaître dans le classement.';
   if (!username) return 'Choisis un nom de joueur pour apparaître dans le classement.';
-  if (state.cheated) return 'Partie modifiée avec le mode debug : elle n’apparaît pas dans le classement.';
+  if (state.cheated) return 'Partie modifiée avec l’ancien mode debug : elle n’apparaît pas dans le classement.';
   return null;
 }
 

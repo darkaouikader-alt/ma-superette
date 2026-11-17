@@ -49,11 +49,6 @@ export function renderSettings(state: GameState): string {
     </section>
     ${cloudCard()}
     ${installCard()}
-    <section class="card">
-      <div class="card-head"><h2>Aide</h2></div>
-      <p class="muted">Appuie sur la touche <kbd>D</kbd> pour afficher le <b>mode debug</b> : formules de demande détaillées produit par produit, utiles pour ajuster l’équilibrage (fichiers <code>src/data/</code>).</p>
-      <button class="btn ghost sm" data-act="toggle-debug">${ui.debug ? 'Masquer' : 'Afficher'} le mode debug</button>
-    </section>
   </div>`;
 }
 

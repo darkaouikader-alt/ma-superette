@@ -168,7 +168,7 @@ export interface GameState {
   shops?: { active: number; list: ShopEntry[] };
   /** Acheteur automatique (amélioration « Responsable des achats »). */
   buyer?: { enabled: boolean; coverDays: number; reserve: number; last?: BuyerReport };
-  /** Partie modifiée avec le mode debug (+€ / +XP) : exclue du classement mondial. */
+  /** Partie modifiée avec l'ancien mode debug (+€ / +XP, retiré) : exclue du classement mondial. */
   cheated?: boolean;
   lastReport: DayReport | null;
   settings: Settings;

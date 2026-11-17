@@ -91,8 +91,9 @@ npm run simulate -- 80   # bot d'équilibrage : 80 jours sans interface
 - **Performances** : plus de flou d'arrière-plan ; animations décoratives coupées par défaut sur écran
   tactile (réglage dans Paramètres) ; décor en pause sous les fenêtres. Au repos, le travail du
   navigateur passe de 101 à 5 ms par seconde.
-- **Mode debug** (touche D) : les boutons +1 000 € / +1 000 XP marquent la partie `cheated`, ce qui
-  l'exclut du classement.
+- **Mode debug retiré** : la touche D et ses boutons +1 000 € / +1 000 XP permettaient de tricher.
+  Les parties déjà marquées `cheated` restent exclues du classement. Pour l'équilibrage, utiliser
+  `npm run simulate`.
 
 ## 5. Fonctionnalités en place
 
