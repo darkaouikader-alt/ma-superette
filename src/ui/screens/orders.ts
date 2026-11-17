@@ -14,6 +14,7 @@ import { productBadges } from '../alerts';
 import { sfx } from '../audio';
 import { badge, esc, gauge, money, money0, newBadge, num, num1, pastille, plural } from '../dom';
 import { toast } from '../toast';
+import { compareValues, nextSort, sortBar } from '../sortbar';
 import { BALANCE } from '../../data/constants';
 import { levelDef } from '../../data/levels';
 import { UPGRADE_BY_ID } from '../../data/upgrades';
@@ -57,7 +58,20 @@ export function renderOrders(state: GameState): string {
   const newHere = prods.filter((p) => isNewProduct(p, state));
   if (ui.orderCat === 'new' && !newHere.length) ui.orderCat = 'all';
   // Les nouveautés en tête de liste
-  const shown = prods.slice().sort((a, b) => Number(isNewProduct(b, state)) - Number(isNewProduct(a, state)));
+  // Tri : par défaut les nouveautés en tête ; sinon le critère choisi (titres de colonnes ou barre « Trier par »).
+  const sorters: Record<string, (p: Product) => number | string> = {
+    name: (p) => p.name,
+    stock: (p) => totalQty(state, p.id),
+    sales: (p) => avgDailyDemand(state, p),
+    price: (p) => unitCost(p, sup, state),
+    qty: (p) => cartLots(state, sup.id, p.id) * sup.lotSize,
+    total: (p) => (cartLots(state, sup.id, p.id) ? linePrice(p, sup, cartLots(state, sup.id, p.id), state).total : 0),
+  };
+  const sortKey = sorters[ui.orderSort] ? ui.orderSort : 'default';
+  const shown = prods.slice().sort((a, b) => sortKey === 'default'
+    ? Number(isNewProduct(b, state)) - Number(isNewProduct(a, state))
+    : compareValues(sorters[sortKey](a), sorters[sortKey](b), ui.orderDir) || a.name.localeCompare(b.name, 'fr'));
+  const oth = (k: string, label: string, cls = '') => `<th class="sortable ${cls} ${sortKey === k ? 'sorted' : ''}" data-act="order-sort" data-arg="${k}" title="Trier par ${label.toLowerCase()}">${label}${sortKey === k ? (ui.orderDir > 0 ? ' ▲' : ' ▼') : ''}</th>`;
   return `
   <div class="screen-head">
     <div><h1>🚚 Commandes</h1><p class="muted">Chaque fournisseur a son délai, sa taille de lot et sa remise de volume. Les livraisons arrivent le matin, dans l’entrepôt.</p></div>
@@ -87,14 +101,15 @@ export function renderOrders(state: GameState): string {
             <button class="btn ghost sm" data-act="auto-reorder" data-arg="all">🔁 Tout l’assortiment</button>
           </div>
         </div>
-        <div class="pad-x">${searchBox('orders', `Rechercher chez ${sup.name}…`)}<div class="search-elsewhere" id="search-elsewhere"></div></div>
+        <div class="pad-x">${searchBox('orders', `Rechercher chez ${sup.name}…`)}<div class="search-elsewhere" id="search-elsewhere"></div>
+          ${sortBar('order-sort', { default: 'Nouveautés', name: 'Produit', stock: 'Stock', sales: 'Ventes', price: 'Prix', qty: 'Au panier' }, sortKey, ui.orderDir)}</div>
         <div class="chips pad">
           ${newHere.length ? `<button class="chip new ${ui.orderCat === 'new' ? 'on' : ''}" data-act="order-cat" data-arg="new">✨ Nouveautés (${newHere.length})</button>` : ''}
           <button class="chip ${ui.orderCat === 'all' ? 'on' : ''}" data-act="order-cat" data-arg="all">Tout</button>
           ${cats.map((c) => `<button class="chip ${ui.orderCat === c.id ? 'on' : ''}" data-act="order-cat" data-arg="${c.id}">${c.emoji} ${c.name}</button>`).join('')}
         </div>
         <table class="table mcards">
-          <thead><tr><th>Produit</th><th class="num">Stock</th><th class="num">Ventes</th><th class="num">Prix unitaire</th><th>Quantité</th><th class="num">Total</th></tr></thead>
+          <thead><tr>${oth('name', 'Produit')}${oth('stock', 'Stock', 'num')}${oth('sales', 'Ventes', 'num')}${oth('price', 'Prix unitaire', 'num')}${oth('qty', 'Quantité')}${oth('total', 'Total', 'num')}</tr></thead>
           <tbody>${shown.map((p) => catalogRow(state, p, sup.id)).join('')}<tr data-search-empty hidden><td colspan="6" class="muted center"></td></tr></tbody>
         </table>
       </section>
@@ -239,6 +254,11 @@ on('cart-toggle', () => {
   document.body.classList.toggle('sheet-open', ui.cartOpen);
   const bar = document.getElementById('cartbar-slot');
   if (bar) bar.innerHTML = cartBar(store.state);
+});
+on('order-sort', (k) => {
+  const n = nextSort(ui.orderSort, ui.orderDir, k);
+  ui.orderSort = n.key; ui.orderDir = k === 'default' ? 1 : n.dir;
+  store.commit();
 });
 on('supplier', (id) => { ui.supplier = id; ui.orderCat = 'all'; store.commit(); applySearch('orders'); });
 on('order-cat', (c) => {

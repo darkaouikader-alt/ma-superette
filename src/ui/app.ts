@@ -122,6 +122,11 @@ function render(): void {
   // Vitrine identique : on garde l'ancien dessin (pas de nouveau calcul ni de redémarrage des animations).
   const newHero = app.querySelector<SVGElement>('.hero svg.storefront');
   if (oldHero && newHero && oldHero.dataset.key === newHero.dataset.key) newHero.replaceWith(oldHero);
+  // Barres « Trier par » qui défilent (téléphone) : le critère actif reste visible.
+  app.querySelectorAll<HTMLElement>('.sort-bar').forEach((bar) => {
+    const on = bar.querySelector<HTMLElement>('.chip.on');
+    if (on && bar.scrollWidth > bar.clientWidth) bar.scrollLeft = Math.max(0, on.offsetLeft - bar.offsetLeft - 70);
+  });
   ui.entering = false;
   if (ui.screen === 'decor') queueMicrotask(() => markSlotSeen(state));
   // Recherche en cours : messages « aucun résultat » et suggestions à jour après chaque rendu.

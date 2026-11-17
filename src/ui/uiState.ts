@@ -19,6 +19,9 @@ export const ui = {
   stockSort: 'days',
   /** Sens du tri du stock : 1 = croissant, −1 = décroissant. */
   stockDir: 1,
+  /** Tri du catalogue fournisseur (Commandes). */
+  orderSort: 'default',
+  orderDir: 1,
   statsTab: 'days' as 'days' | 'best' | 'margins',
   objTab: 'daily' as 'daily' | 'weekly' | 'long',
   pickerSlot: -1,

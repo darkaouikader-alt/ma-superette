@@ -42,3 +42,27 @@ describe('tri du stock', () => {
     }
   });
 });
+
+import { renderOrders } from '../src/ui/screens/orders';
+
+describe('tri des commandes', () => {
+  const names = () => {
+    const s = createNewGame(5);
+    addStock(s, 'pates', 300, 0.9, 1);
+    ui.supplier = 'dupont'; ui.orderCat = 'all';
+    return [...renderOrders(s).matchAll(/<tr id="or-[^"]+"[^>]*>\s*<td><div class="prod-cell">.*?<b>([^<]+)<\/b>/gs)].map((m) => m[1]);
+  };
+  it('chaque critère trie dans les deux sens', () => {
+    for (const k of ['name', 'stock', 'sales', 'price']) {
+      ui.orderSort = k; ui.orderDir = 1;
+      const asc = names();
+      ui.orderDir = -1;
+      const desc = names();
+      expect(asc.length, k).toBeGreaterThan(5);
+      expect(desc[0], k).not.toBe(asc[0]);
+    }
+    ui.orderSort = 'stock'; ui.orderDir = -1;
+    expect(names()[0]).toBe('Pâtes 500 g'); // 300 en stock
+    ui.orderSort = 'default';
+  });
+});
