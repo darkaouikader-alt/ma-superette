@@ -1,6 +1,6 @@
 // Nom de joueur et classement mondial (tableau de bord + fenêtre du top 100).
 import {
-  chooseUsername, currentUsername, fetchLeaderboard, LEADERBOARD_SIZE, loadProfile, profileReady, rankingProblem, type LeaderEntry, type Leaderboard,
+  chooseUsername, currentUsername, fetchLeaderboard, onScorePublished, LEADERBOARD_SIZE, loadProfile, profileReady, rankingProblem, type LeaderEntry, type Leaderboard,
 } from '../cloud/social';
 import { cloudAvailableHere, cloudUser } from '../cloud/sync';
 import { levelDef } from '../data/levels';
@@ -22,6 +22,13 @@ const ordinal = (n: number) => (n === 1 ? '1er' : `${num(n)}e`);
 
 /** Recharge le classement (après une journée, un changement de nom…). */
 export function invalidateLeaderboard(): void { cache = null; }
+
+// Dès que la ligne du joueur est à jour dans la base, le classement affiché est rechargé.
+onScorePublished(() => {
+  invalidateLeaderboard();
+  const card = document.getElementById('lb-card');
+  if (card) card.outerHTML = leaderboardCard(store.state);
+});
 
 function load(state: GameState): void {
   if (loading) return;
@@ -46,7 +53,7 @@ function row(e: LeaderEntry, rank: number, mine: boolean): string {
 }
 
 export function leaderboardCard(state: GameState): string {
-  const head = '<div class="card-head"><h2>🏆 Classement mondial</h2><span class="muted small">Score = points d’expérience</span></div>';
+  const head = '<div class="card-head"><h2>🏆 Classement mondial</h2><span class="muted small">Score = XP totale</span></div>';
   if (!cloudAvailableHere()) {
     return `<section class="card" id="lb-card">${head}<p class="muted small">Le classement est disponible dans la version en ligne du jeu.</p></section>`;
   }
@@ -61,7 +68,7 @@ export function leaderboardCard(state: GameState): string {
   else {
     const d = cache.data!;
     const uid = cloudUser()?.uid;
-    body = `${d.me ? `<div class="lb-me"><span class="lb-me-rank">${ordinal(d.me.rank)}</span><span>sur ${num(Math.max(d.total, d.me.rank))} joueur${d.total > 1 ? 's' : ''}<br><span class="small muted">${esc(d.me.username)} · ${num(d.me.score)} points</span></span></div>` : ''}
+    body = `${d.me ? `<div class="lb-me"><span class="lb-me-rank">${ordinal(d.me.rank)}</span><span>sur ${num(Math.max(d.total, d.me.rank))} joueur${d.total > 1 ? 's' : ''}<br><span class="small muted">${esc(d.me.username)} · ${num(d.me.score)} XP au total</span></span></div>` : ''}
       <div class="lb-list">${d.top.slice(0, 5).map((e, i) => row(e, i + 1, e.uid === uid)).join('') || '<p class="muted small">Personne n’est encore classé : sois le premier !</p>'}</div>
       ${d.top.length ? `<button class="btn ghost sm block" data-act="lb-open">Voir le top ${LEADERBOARD_SIZE}</button>` : ''}`;
   }

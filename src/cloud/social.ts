@@ -88,14 +88,34 @@ export function rankingProblem(state: GameState): string | null {
   return null;
 }
 
-/** Met à jour la ligne du joueur dans le classement. */
+const published: (() => void)[] = [];
+/** Appelé après chaque mise à jour réussie de la ligne du joueur (le classement affiché se recharge). */
+export const onScorePublished = (fn: () => void) => { published.push(fn); };
+let lastPublished = '';
+
+/** Ligne du joueur telle qu'elle est en ce moment dans sa partie (toujours à jour, contrairement à la base). */
+export function liveEntry(state: GameState, uid: string): LeaderEntry {
+  return {
+    uid, username: username ?? '', score: Math.round(state.xp), level: state.level, day: state.day,
+    revenue: Math.round(state.totals.revenue), reputation: Math.round(state.reputation),
+  };
+}
+
+/**
+ * Met à jour la ligne du joueur dans le classement. Indépendant de la sauvegarde en ligne :
+ * un conflit entre appareils ou une sauvegarde refusée ne fige plus le classement.
+ */
 export async function publishScore(state: GameState): Promise<void> {
   const db = cloudDb(), u = cloudUser();
   if (!db || !u || rankingProblem(state)) return;
+  const e = liveEntry(state, u.uid);
+  const key = `${u.uid}:${e.score}:${e.level}:${e.day}`;
+  if (key === lastPublished) return;
   await setDoc(doc(db, 'leaderboard', u.uid), {
-    username, score: Math.round(state.xp), level: state.level, day: state.day,
-    revenue: Math.round(state.totals.revenue), reputation: Math.round(state.reputation), updatedAt: serverTimestamp(),
+    username, score: e.score, level: e.level, day: e.day, revenue: e.revenue, reputation: e.reputation, updatedAt: serverTimestamp(),
   });
+  lastPublished = key;
+  published.forEach((fn) => fn());
 }
 
 /** Top 100 mondial + la position du joueur s'il est plus loin. */
@@ -104,18 +124,26 @@ export async function fetchLeaderboard(state: GameState): Promise<Leaderboard> {
   if (!db) throw new Error('Classement indisponible ici.');
   const col = collection(db, 'leaderboard');
   const snap = await getDocs(query(col, orderBy('score', 'desc'), limit(LEADERBOARD_SIZE)));
-  const top = snap.docs.map((d) => ({ uid: d.id, ...(d.data() as Omit<LeaderEntry, 'uid'>) }));
-  const total = (await getCount(col)).data().count;
+  let top = snap.docs.map((d) => ({ uid: d.id, ...(d.data() as Omit<LeaderEntry, 'uid'>) }));
+  let total = (await getCount(col)).data().count;
   const u = cloudUser();
   let me: Leaderboard['me'] = null;
   if (u && !rankingProblem(state)) {
-    const i = top.findIndex((e) => e.uid === u.uid);
-    if (i >= 0) me = { ...top[i], rank: i + 1 };
-    else {
-      const score = Math.round(state.xp);
-      const ahead = (await getCount(query(col, where('score', '>', score)))).data().count;
-      me = { uid: u.uid, username: username!, score, level: state.level, day: state.day, revenue: Math.round(state.totals.revenue), reputation: Math.round(state.reputation), rank: ahead + 1 };
+    // Sa propre ligne : les valeurs de la partie en cours (la base peut avoir quelques secondes de retard).
+    const live = liveEntry(state, u.uid);
+    const wasListed = top.some((e) => e.uid === u.uid);
+    const others = top.filter((e) => e.uid !== u.uid);
+    const ahead = others.filter((e) => e.score > live.score).length;
+    if (ahead < LEADERBOARD_SIZE) {
+      top = [...others.slice(0, ahead), live, ...others.slice(ahead)].slice(0, LEADERBOARD_SIZE);
+      me = { ...live, rank: ahead + 1 };
+    } else {
+      top = others;
+      // Au-delà du top : joueurs devant soi dans la base (sa propre ligne, plus ancienne, n'est pas devant).
+      const n = (await getCount(query(col, where('score', '>', live.score)))).data().count;
+      me = { ...live, rank: n + 1 };
     }
+    total = Math.max(total, me.rank);
   }
   return { top, me, total };
 }

@@ -125,6 +125,43 @@ function schedule(): void {
   timer = setTimeout(() => { void flush(); }, UPLOAD_DELAY_MS);
 }
 
+// ── Compression des grosses parties ─────────────────────────
+// Firestore refuse les documents de plus de 1 Mo. Au-delà de PACK_FROM caractères, la partie est
+// compressée (gzip intégré au navigateur, puis base64) dans le champ `z` au lieu de `data`.
+// Les petites parties restent en clair : lisibles aussi par les anciennes versions du jeu.
+const PACK_FROM = 600_000;
+const canPack = () => typeof CompressionStream !== 'undefined' && typeof DecompressionStream !== 'undefined';
+
+async function gzipBase64(text: string): Promise<string> {
+  const stream = new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'));
+  const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+
+async function gunzipBase64(b64: string): Promise<string> {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return new Response(stream).text();
+}
+
+/** Champs à écrire pour la partie : `data` (texte) ou `z` (compressée). */
+export async function packSave(json: string): Promise<{ data: string } | { z: string }> {
+  return json.length >= PACK_FROM && canPack() ? { z: await gzipBase64(json) } : { data: json };
+}
+
+/** Texte de la partie depuis les champs du document en ligne. */
+export async function unpackSave(fields: { data?: unknown; z?: unknown }): Promise<string> {
+  if (typeof fields.z === 'string') {
+    if (!canPack()) throw new Error('Mets à jour ton navigateur pour lire cette partie en ligne.');
+    return gunzipBase64(fields.z);
+  }
+  return typeof fields.data === 'string' ? fields.data : '';
+}
+
 /** Compare la partie locale et la partie en ligne, puis télécharge ou envoie. */
 export async function reconcile(): Promise<void> {
   if (!user || !db || !hooks) return;
@@ -139,7 +176,7 @@ export async function reconcile(): Promise<void> {
       return;
     }
     const cloudRev = snap.get('rev') as number;
-    const cloudData = snap.get('data') as string;
+    const cloudData = await unpackSave({ data: snap.get('data'), z: snap.get('z') });
     if (cloudRev === meta.rev) {
       if (meta.dirty) await upload(); else markSynced(cloudRev);
       return;
@@ -176,23 +213,23 @@ async function upload(force = false): Promise<void> {
   if (!user || !db || !hooks) return;
   const ref = doc(db, 'saves', user.uid);
   const state = hooks.getState();
-  const data = JSON.stringify(state);
+  const packed = await packSave(JSON.stringify(state));
   const meta = readMeta();
   const result = await runTransaction(db, async (tx) => {
     const snap = await tx.get(ref);
     const cloudRev = snap.exists() ? (snap.get('rev') as number) : 0;
     if (snap.exists() && cloudRev !== meta.rev && !force) {
-      return { conflict: true as const, cloudRev, cloudData: snap.get('data') as string, when: snap.get('updatedAt') as Timestamp | undefined };
+      return { conflict: true as const, cloudRev, raw: { data: snap.get('data'), z: snap.get('z') }, when: snap.get('updatedAt') as Timestamp | undefined };
     }
     const rev = cloudRev + 1;
     tx.set(ref, {
-      rev, data, day: state.day, level: state.level, cash: Math.round(state.cash * 100) / 100,
+      rev, ...packed, day: state.day, level: state.level, cash: Math.round(state.cash * 100) / 100,
       updatedAt: serverTimestamp(), device: deviceName(),
     });
     return { conflict: false as const, rev };
   });
   if (result.conflict) {
-    askConflict(result.cloudRev, result.cloudData, result.when);
+    askConflict(result.cloudRev, await unpackSave(result.raw), result.when);
     return;
   }
   markSynced(result.rev);

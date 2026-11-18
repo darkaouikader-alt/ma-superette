@@ -17,6 +17,7 @@ import { expirePromotions } from './promotions';
 import { dailyBranchIncome } from './branches';
 import { runBuyer } from './buyer';
 import { boostValue } from './wheel';
+import { compactHistory } from '../state/history';
 import { activeShopIndex, forEachShop, manageShop, shopCount, shopList } from './shops';
 import { charmSummary, checkDecorUnlocks } from './decor';
 
@@ -211,6 +212,7 @@ function shopDay(state: GameState, salt = 0): ShopDayResult {
   };
   state.history.push(report);
   if (state.history.length > B.HISTORY_DAYS) state.history.shift();
+  compactHistory(state.history);
   return { report, timeline, opening, essWanted, noWaste: expired.length === 0 };
 }
 

@@ -5,7 +5,7 @@ Document de reprise du projet : où en est le jeu, comment il est construit, ce 
 - **Jeu en ligne** : https://darkaouikader-alt.github.io/ma-superette/
 - **Code** : https://github.com/darkaouikader-alt/ma-superette (branche `main`)
 - **Aperçu Claude** (sans compte en ligne) : https://claude.ai/artifact/3uZZq2hiX4HSQi8omiUQCU
-- **État** : 92 tests au vert, publication automatique réussie (dernier commit : voir `git log`).
+- **État** : 96 tests au vert, publication automatique réussie (dernier commit : voir `git log`).
 
 ## 1. Objectif
 
@@ -19,7 +19,7 @@ fidélise sur la durée (compte en ligne, classement, roue, longue progression).
 ```bash
 npm install
 npm run dev          # http://localhost:5173
-npm test             # 92 tests (Vitest)
+npm test             # 96 tests (Vitest)
 npm run build        # vérification TypeScript + build dans dist/
 npm run simulate -- 80   # bot d'équilibrage : 80 jours sans interface
 ```
@@ -88,6 +88,13 @@ npm run simulate -- 80   # bot d'équilibrage : 80 jours sans interface
     confirmée (92 %, équipe et froid), expert (100 %, tout l'équipement). Salaire × affluence du
     niveau. Le gérant garde 10 % de la caisse (min. 500 €) en réserve.
   - Bot (`NO_SHOPS=1` pour les ignorer) : niveau 20 au jour 329 avec magasins, 436 sans.
+- **Classement à jour** : le score est envoyé dès la fin de la journée (`publishScore` dans
+  `app.ts`), indépendamment de la sauvegarde en ligne ; sa propre ligne est affichée avec les valeurs
+  de la partie en cours, et le classement se recharge après chaque envoi réussi.
+- **Sauvegarde légère** : seuls les 7 derniers bilans gardent leur détail (`src/state/history.ts`),
+  et une partie de plus de 600 000 caractères est compressée en gzip (champ `z` au lieu de `data`
+  dans `saves/{uid}`, `CompressionStream` du navigateur). Firestore refuse les documents de plus
+  de 1 Mo : partie à 6 magasins au jour 500, 748 Ko → 184 Ko envoyés.
 - **Performances** : plus de flou d'arrière-plan ; animations décoratives coupées par défaut sur écran
   tactile (réglage dans Paramètres) ; décor en pause sous les fenêtres. Au repos, le travail du
   navigateur passe de 101 à 5 ms par seconde.

@@ -113,7 +113,7 @@ export function renderDashboard(state: GameState): string {
     <div class="card kpi"><span class="kpi-label">Réputation</span><span class="kpi-value">${num(Math.round(state.reputation))}<small> / 100</small></span>
       ${gauge(state.reputation, state.reputation < 25 ? 'orange' : 'green')}</div>
     <div class="card kpi"><span class="kpi-label">Niveau ${state.level}</span><span class="kpi-value small">${esc(lvl.name)}</span>
-      ${gauge(xp.pct, 'purple')}<span class="kpi-sub">${xp.max ? 'Niveau maximum' : `${num(xp.current)} / ${num(xp.needed)} XP`}</span></div>
+      ${gauge(xp.pct, 'purple')}<span class="kpi-sub">${xp.max ? `Niveau maximum · ${num(Math.round(state.xp))} XP au total` : `Niveau : ${num(xp.current)} / ${num(xp.needed)} XP · total ${num(Math.round(state.xp))}`}</span></div>
     <div class="card kpi"><span class="kpi-label">Affluence prévue</span><span class="kpi-value">${num(pot)}<small> clients</small></span>
       <span class="kpi-sub ${pot > cap || image < 1 ? 'warn' : ''}">${image < 1 ? `⚠️ Prix jugés trop élevés : −${Math.round((1 - image) * 100)} % de clients` : pot > cap ? `⚠️ Caisse saturée (max ${cap}) : embauche un caissier` : `Capacité de caisse : ${cap}/jour`}</span></div>
   </section>

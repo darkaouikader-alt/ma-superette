@@ -14,6 +14,7 @@ import { initActions, on } from './actions';
 import { initInstall } from './install';
 import { askAccountOnFirstLaunch, cloudPill, setupCloud } from './cloud';
 import { invalidateLeaderboard } from './leaderboard';
+import { publishScore } from '../cloud/social';
 import { startWheelTicker } from './wheel';
 import { shopSelect } from './shops';
 import { canSpin } from '../systems/wheel';
@@ -155,6 +156,8 @@ function openStore(): void {
   playDay(outcome, () => {
     ui.simRunning = false;
     invalidateLeaderboard();
+    // Score envoyé tout de suite, sans attendre la sauvegarde en ligne.
+    void publishScore(state).catch(() => undefined);
     showReport();
   });
 }

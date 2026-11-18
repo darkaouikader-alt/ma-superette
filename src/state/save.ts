@@ -1,4 +1,5 @@
 // Sauvegarde dans localStorage (ou tout stockage compatible, pour les tests).
+import { compactHistory } from './history';
 import { SAVE_KEY, SAVE_VERSION } from '../data/constants';
 import { PRODUCT_BY_ID } from '../data/products';
 import type { GameState } from './types';
@@ -63,6 +64,9 @@ export function parseSave(fresh: GameState, raw: string | null): GameState | nul
     for (const s of state.slots) if (s.productId && !PRODUCT_BY_ID[s.productId]) { s.productId = null; s.qty = 0; }
     for (const pid of Object.keys(state.stock)) if (!PRODUCT_BY_ID[pid]) delete state.stock[pid];
     state.cart = state.cart.filter((c) => PRODUCT_BY_ID[c.productId]);
+    // Anciennes sauvegardes : allège l'historique de chaque magasin.
+    compactHistory(state.history);
+    for (const e of state.shops?.list ?? []) if (e.data?.history) compactHistory(e.data.history);
     return state;
   } catch {
     return null;
